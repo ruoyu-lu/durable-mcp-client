@@ -1,0 +1,38 @@
+# Credentials and private runtime data
+.env
+.env.*
+!.env.example
+.runtime/
+evidence/private/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# JavaScript / TypeScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+
+# Local editor / OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
