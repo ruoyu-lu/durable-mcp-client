@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/modelcontextprotocol/ext-tasks",
+  "commit": "9263312d11a682ac83f83fe84794d4627efd22f5",
+  "path": "specification/2026-07-28/tasks.md",
+  "protocolVersion": "2026-07-28",
+  "extension": "io.modelcontextprotocol/tasks",
+  "sha256": "ef2860ae4418d02f3b2bfd54fcd88b03a3c2c3aa6724d282cd4ca3a3699a2e27",
+  "verifiedOn": "2026-09-08",
+  "verification": "Source inspection only; SDK and server interoperability not yet tested."
+}

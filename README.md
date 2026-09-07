@@ -38,6 +38,7 @@ Server scheduling and execution are delegated to existing runtimes. Here, **dura
 | [Architecture](docs/architecture.md) | Components, records, recovery, and delivery semantics |
 | [Roadmap](docs/roadmap.md) | Milestones and decision gates |
 | [Validation](docs/validation.md) | Protocol checks and fault-injection scenarios |
+| [Compatibility baseline](docs/compatibility.md) | Pinned Tasks contract and outstanding implementation checks |
 | [Research](docs/research.md) | Upstream references and assumptions to verify |
 | [Decision record](docs/decisions/0001-scope-and-reuse.md) | Scope and reuse strategy |
 | [Backlog](docs/backlog.md) | Development tasks and progress |
