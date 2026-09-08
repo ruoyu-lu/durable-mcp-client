@@ -1,12 +1,14 @@
 export type RemoteStatus = 'working' | 'input_required' | 'completed' | 'failed' | 'cancelled';
 export interface Snapshot {
   status: RemoteStatus;
+  /** Plain JSON data; validated before persistence. */
   result?: unknown;
   error?: string;
 }
 export interface TaskRecord {
   id: string;
   adapter: string;
+  /** Plain JSON data; validated before remote submission. */
   input: unknown;
   remoteId: string | null;
   submission: 'unknown' | 'accepted';

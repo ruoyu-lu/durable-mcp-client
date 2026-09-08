@@ -116,3 +116,39 @@ test('CLI recovers an initially working demo task in a new process', async t => 
   assert.deepEqual(result.snapshot, { status: 'completed', result: { text: 'finished later' } });
   assert.deepEqual(cli(db, 'recover'), []);
 });
+
+
+test('non-JSON input is rejected before remote submission or persistence', async t => {
+  const store = new TaskStore(database(t));
+  t.after(() => store.close());
+  let calls = 0;
+  const coordinator = new TaskCoordinator(store, {
+    name: 'validation',
+    submit: async () => { calls++; return { remoteId: 'x', snapshot: { status: 'working' } }; },
+    query: async () => ({ status: 'working' }),
+  });
+  const cycle = {}; cycle.self = cycle;
+  for (const input of [1n, cycle, { x: undefined }, NaN, new Date(), [, 1]]) {
+    await assert.rejects(coordinator.submit(input), /JSON|circular/);
+  }
+  assert.equal(calls, 0);
+  assert.deepEqual(store.list(), []);
+});
+
+test('invalid result rolls back observation and preserves handle for later recovery', async t => {
+  const store = new TaskStore(database(t));
+  t.after(() => store.close());
+  let result = 1n;
+  const coordinator = new TaskCoordinator(store, {
+    name: 'validation',
+    submit: async () => ({ remoteId: 'retained', snapshot: { status: 'working' } }),
+    query: async () => ({ status: 'completed', result }),
+  });
+  const submitted = await coordinator.submit({});
+  const failed = await coordinator.refresh(submitted.id);
+  assert.equal(failed.remoteId, 'retained');
+  assert.equal(failed.snapshot.status, 'working');
+  assert.match(failed.observationError, /JSON/);
+  result = { value: 1 };
+  assert.deepEqual((await coordinator.refresh(submitted.id)).snapshot.result, result);
+});

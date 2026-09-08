@@ -1,3 +1,4 @@
+import { assertJsonValue } from './json.js';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
@@ -20,6 +21,7 @@ export class TaskStore {
   }
   close(): void { this.db.close(); }
   create(adapter: string, input: unknown): TaskRecord {
+    assertJsonValue(input, 'Task input');
     const now = new Date().toISOString();
     const record: TaskRecord = {
       id: randomUUID(), adapter, input, remoteId: null, submission: 'unknown',
@@ -42,6 +44,7 @@ export class TaskStore {
     try {
       const record = this.get(id);
       update(record);
+      assertJsonValue(record, 'Task record');
       record.updatedAt = new Date().toISOString();
       this.db.prepare('UPDATE tasks SET record = ? WHERE id = ?').run(JSON.stringify(record), id);
       this.db.exec('COMMIT');
