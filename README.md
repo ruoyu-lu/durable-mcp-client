@@ -45,7 +45,17 @@ Server scheduling and execution are delegated to existing runtimes. Here, **dura
 
 ## Development
 
-The proposed stack is TypeScript for the client and adapters, Python for a FastMCP example server, SQLite for local records, and Redis or Valkey for the server runtime. Dependency versions and executable setup instructions will be added with the compatibility milestone.
+The proposed stack is TypeScript for the client and adapters, Python for a FastMCP example server, SQLite for local records, and Redis or Valkey for the server runtime. The first SDK probe pins the published client and records both working behavior and compatibility gaps; see the [compatibility baseline](docs/compatibility.md).
+
+Run the compatibility probes with Node 22 or newer:
+
+```sh
+npm ci --ignore-scripts
+npm run check
+npm test
+```
+
+These tests characterize the SDK, including known Tasks limitations; they are not an end-to-end server interoperability test.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 

@@ -46,9 +46,9 @@ Examples are illustrative and sometimes omit capability metadata or use inconsis
 | Component | Evidence | Status |
 | --- | --- | --- |
 | Tasks extension | Immutable source and digest; matrix above | Source baseline established |
-| TypeScript SDK | Release lookup surfaced a scoped package release, not a verified client combination | T002 pending |
+| TypeScript SDK | `@modelcontextprotocol/client@2.0.0`, pinned in package-lock.json; fetch-seam tests below | Modern Tasks blocked in the public client API |
 | FastMCP/tasks/Docket | Repository release lookup alone is insufficient | T002 pending |
-| HTTP wire behavior | No client/server probe executed | T005 pending |
+| HTTP wire behavior | Real SDK serialization tested through an injected fetch responder; no sockets or FastMCP | T005 real-server probe pending |
 | Harness | No source audit or plugin probe completed | T003/T004 pending |
 
 Do not interpret these pending rows as successful interoperability.
@@ -63,3 +63,21 @@ python3 -c 'import base64, hashlib, pathlib; print(hashlib.sha256(base64.b64deco
 ```
 
 Compare the output with `sha256` in `docs/protocol-baseline.json`. This verifies source bytes, not protocol conformance. No application build or runtime tests are applicable to this documentation-only change.
+
+## Published client probe (2026-09-08, Australia/Melbourne)
+
+Install with `npm ci --ignore-scripts`, run `npm run check`, then `npm test` (Node 22 or newer). The lockfile pins the dependency tree. Tests use the published SDK and its public HTTP transport fetch hook with a controlled responder, not a real HTTP server or FastMCP process.
+
+Observed with Node 24.1.0 and `@modelcontextprotocol/client@2.0.0`:
+
+| Probe | Observed result |
+| --- | --- |
+| Pin modern protocol and call a synchronous tool | PASS: per-request capability metadata and MCP method/name/version headers are emitted |
+| Receive flat `resultType: task` from tools/call | BLOCKED: `UNSUPPORTED_RESULT_TYPE` |
+| Call tasks/get on the modern connection | BLOCKED: `METHOD_NOT_SUPPORTED_BY_PROTOCOL_VERSION`, before HTTP dispatch |
+
+The tests assert these observed limitations to detect changes in the pinned baseline. A green test run does **not** mean Tasks interoperability works. No task routing headers or detailed task results were verified because the request never reached the transport. Do not advertise the Tasks capability in production until a working extension/adapter is established; the probe deliberately advertises it to test the response path.
+
+The SDK's declared client options document a legacy default and explicit `versionNegotiation: { mode: { pin: '2026-07-28' } }`. Its discovery result schema requires `supportedVersions`, not a single `protocolVersion` field. Package metadata and installed declarations/behavior, rather than the monorepo root version, determine this finding.
+
+Next T002 action: identify an official extension package or supported extension hook that can handle modern task results and methods, or verify a Python-first client route. Do not hand-write a second protocol stack or silently downgrade the pinned baseline. PyPI reports FastMCP 4.0.3 with the separate fastmcp-tasks 4.0.3 extra; this is metadata only, not an installed/verified runtime combination. T002 remains open in the backlog.
