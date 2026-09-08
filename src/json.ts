@@ -12,7 +12,13 @@ export function assertJsonValue(value: unknown, label: string): void {
     if (Object.getOwnPropertySymbols(item).length) throw new Error(`${path} contains symbol properties`);
     ancestors.add(item);
     if (Array.isArray(item)) {
-      for (let index = 0; index < item.length; index++) visit(item[index], `${path}[${index}]`);
+      const keys = Object.getOwnPropertyNames(item);
+      if (keys.length !== item.length + 1) throw new Error(`${path} must be a dense JSON array without extra properties`);
+      for (let index = 0; index < item.length; index++) {
+        const descriptor = Object.getOwnPropertyDescriptor(item, String(index));
+        if (!descriptor || !descriptor.enumerable || !('value' in descriptor)) throw new Error(`${path}[${index}] must be a JSON data property`);
+        visit(descriptor.value, `${path}[${index}]`);
+      }
     } else {
       for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(item))) {
         if (!descriptor.enumerable || !('value' in descriptor)) throw new Error(`${path}.${key} must be a JSON data property`);

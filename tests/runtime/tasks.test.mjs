@@ -128,7 +128,7 @@ test('non-JSON input is rejected before remote submission or persistence', async
     query: async () => ({ status: 'working' }),
   });
   const cycle = {}; cycle.self = cycle;
-  for (const input of [1n, cycle, { x: undefined }, NaN, new Date(), [, 1]]) {
+  for (const input of [1n, cycle, { x: undefined }, NaN, new Date(), [, 1], Object.assign([1], { extra: 2 })]) {
     await assert.rejects(coordinator.submit(input), /JSON|circular/);
   }
   assert.equal(calls, 0);
