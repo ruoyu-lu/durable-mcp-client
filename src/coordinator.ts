@@ -12,8 +12,8 @@ export class TaskCoordinator {
       const submitted = await this.adapter.submit(input);
       return this.store.accept(record.id, submitted.remoteId, submitted.snapshot);
     } catch (error) {
-      this.store.recordError(record.id, String(error));
-      throw new Error(`Submission outcome unknown for ${record.id}: ${String(error)}`);
+      this.store.recordError(record.id, error instanceof Error ? error.message : String(error));
+      throw new Error(`Submission outcome unknown for ${record.id}: ${String(error)}`, { cause: error });
     }
   }
   async refresh(id: string): Promise<TaskRecord> {

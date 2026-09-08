@@ -128,7 +128,7 @@ test('non-JSON input is rejected before remote submission or persistence', async
     query: async () => ({ status: 'working' }),
   });
   const cycle = {}; cycle.self = cycle;
-  for (const input of [1n, cycle, { x: undefined }, NaN, new Date(), [, 1], Object.assign([1], { extra: 2 })]) {
+  for (const input of [1n, cycle, { x: undefined }, NaN, -0, new Date(), [, 1], Object.assign([1], { extra: 2 })]) {
     await assert.rejects(coordinator.submit(input), /JSON|circular/);
   }
   assert.equal(calls, 0);
@@ -174,4 +174,21 @@ test('demo query normalizes malformed and invalid handles', async () => {
   for (const handle of ['{', 'null', '[]', '1', '{}', '{"readyAt":"bad","text":"x"}']) {
     await assert.rejects(adapter.query(handle), { name: 'Error', message: 'Invalid demo handle' });
   }
+});
+
+
+test('failed submission retains its original cause for diagnostics', async t => {
+  const store = new TaskStore(database(t));
+  t.after(() => store.close());
+  const cause = new Error('Connection closed after write');
+  const coordinator = new TaskCoordinator(store, {
+    name: 'failure',
+    submit: async () => { throw cause; },
+    query: async () => ({ status: 'working' }),
+  });
+  await assert.rejects(coordinator.submit({}), error => {
+    assert.equal(error.cause, cause);
+    return true;
+  });
+  assert.equal(store.list()[0].observationError, cause.message);
 });

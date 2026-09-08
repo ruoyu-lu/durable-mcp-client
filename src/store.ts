@@ -47,8 +47,8 @@ export class TaskStore {
         this.db.exec('COMMIT');
         return record;
       }
-      assertJsonValue(record, 'Task record');
       record.updatedAt = new Date().toISOString();
+      assertJsonValue(record, 'Task record');
       this.db.prepare('UPDATE tasks SET record = ? WHERE id = ?').run(JSON.stringify(record), id);
       this.db.exec('COMMIT');
       return record;

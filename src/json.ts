@@ -3,7 +3,7 @@ export function assertJsonValue(value: unknown, label: string): void {
   const ancestors = new Set<object>();
   function visit(item: unknown, path: string): void {
     if (item === null || typeof item === 'string' || typeof item === 'boolean') return;
-    if (typeof item === 'number' && Number.isFinite(item)) return;
+    if (typeof item === 'number' && Number.isFinite(item) && !Object.is(item, -0)) return;
     if (typeof item !== 'object' || item === null) throw new Error(`${path} must be JSON-serializable`);
     if (ancestors.has(item)) throw new Error(`${path} contains a circular reference`);
     if (!Array.isArray(item) && Object.getPrototypeOf(item) !== Object.prototype && Object.getPrototypeOf(item) !== null) {
