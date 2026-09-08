@@ -13,6 +13,6 @@ Read the [product scope](docs/product.md), [architecture](docs/architecture.md),
 
 For a bug report, include versions, reproduction steps, expected/actual behavior, and redacted evidence. For a pull request, explain the concrete behavior change and relevant validation. Discuss large scope changes before implementation.
 
-Executable setup and test commands will be documented alongside the first implementation. Do not assume the parent workspace's dependencies belong to this project.
+Run `npm ci --ignore-scripts`, `npm run check`, and `npm test` for the SDK compatibility probes. Do not assume the parent workspace's dependencies belong to this project.
 
 By contributing, you agree that your contributions are licensed under the repository's [MIT License](LICENSE).

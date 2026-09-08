@@ -13,7 +13,7 @@ Updated: 2026-09-08.
 ## M0: next
 
 - [x] T001 Pin Tasks revision and record capabilities, methods, result, input, and cancellation semantics. See [compatibility baseline](compatibility.md) (issue #1).
-- [ ] T002 Establish compatible FastMCP/tasks/Docket/SDK versions.
+- [ ] T002 Establish compatible FastMCP/tasks/Docket/SDK versions. Client 2.0.0 probe records modern Tasks gaps; see [compatibility](compatibility.md) and issue #3. Runtime and extension selection remain pending.
 - [ ] T003 Audit Harness MCP providers, jobs, session events, and delivery; compare related durable clients.
 - [ ] T004 Build the minimal external-plugin probe for persistent association and idempotent delivery.
 - [ ] T005 Exercise direct results, asynchronous observation, input, and cancellation in isolation.
