@@ -31,7 +31,7 @@ M0 must use a pinned specification, SDK types, and actual wire exchanges to dete
 - Q07: What submission deduplication or discovery exists, and what does it guarantee?
 - Q08: What actually happens on cancellation, worker death, TTL cleanup, and Redis restart?
 
-Answers belong in `docs/compatibility.md`, created in M0, with source locations and reproducible evidence.
+The [compatibility baseline](compatibility.md) now pins the Tasks source and records protocol requirements. Runtime and host answers remain pending and must include source locations and reproducible evidence.
 
 ## Related implementations
 
