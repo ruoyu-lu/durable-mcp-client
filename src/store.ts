@@ -39,11 +39,14 @@ export class TaskStore {
     return this.db.prepare('SELECT record FROM tasks ORDER BY rowid').all()
       .map(row => JSON.parse(row.record as string) as TaskRecord);
   }
-  private change(id: string, update: (record: TaskRecord) => void): TaskRecord {
+  private change(id: string, update: (record: TaskRecord) => void | false): TaskRecord {
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const record = this.get(id);
-      update(record);
+      if (update(record) === false) {
+        this.db.exec('COMMIT');
+        return record;
+      }
       assertJsonValue(record, 'Task record');
       record.updatedAt = new Date().toISOString();
       this.db.prepare('UPDATE tasks SET record = ? WHERE id = ?').run(JSON.stringify(record), id);
@@ -67,7 +70,7 @@ export class TaskStore {
   observe(id: string, snapshot: Snapshot): TaskRecord {
     return this.change(id, record => {
       // Never overwrite a settled result with a late poll from another CLI process.
-      if (record.snapshot && ['completed', 'failed', 'cancelled'].includes(record.snapshot.status)) return;
+      if (record.snapshot && ['completed', 'failed', 'cancelled'].includes(record.snapshot.status)) return false;
       record.snapshot = snapshot;
       record.observationError = null;
     });

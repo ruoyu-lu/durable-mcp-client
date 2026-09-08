@@ -152,3 +152,26 @@ test('invalid result rolls back observation and preserves handle for later recov
   result = { value: 1 };
   assert.deepEqual((await coordinator.refresh(submitted.id)).snapshot.result, result);
 });
+
+
+test('late terminal observations do not write to SQLite or change timestamps', async t => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const path = database(t);
+  const store = new TaskStore(path);
+  const observer = new DatabaseSync(path);
+  t.after(() => { observer.close(); store.close(); });
+  const record = store.create('demo', {});
+  const terminal = store.accept(record.id, 'remote', { status: 'completed', result: 'stable' });
+  const before = observer.prepare('PRAGMA data_version').get().data_version;
+  const after = store.observe(record.id, { status: 'working' });
+  assert.deepEqual(after, terminal);
+  assert.equal(observer.prepare('PRAGMA data_version').get().data_version, before);
+});
+
+test('demo query normalizes malformed and invalid handles', async () => {
+  const { DemoAdapter } = await import('../../dist/adapters/demo.js');
+  const adapter = new DemoAdapter();
+  for (const handle of ['{', 'null', '[]', '1', '{}', '{"readyAt":"bad","text":"x"}']) {
+    await assert.rejects(adapter.query(handle), { name: 'Error', message: 'Invalid demo handle' });
+  }
+});

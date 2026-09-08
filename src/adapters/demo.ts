@@ -14,7 +14,11 @@ export class DemoAdapter implements TaskAdapter {
     return { remoteId, snapshot: await this.query(remoteId) };
   }
   async query(remoteId: string): Promise<Snapshot> {
-    const handle = JSON.parse(remoteId) as { readyAt?: unknown; text?: unknown };
+    let parsed: unknown;
+    try { parsed = JSON.parse(remoteId); }
+    catch { throw new Error('Invalid demo handle'); }
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Invalid demo handle');
+    const handle = parsed as { readyAt?: unknown; text?: unknown };
     if (typeof handle.readyAt !== 'number' || !Number.isFinite(handle.readyAt) || typeof handle.text !== 'string') {
       throw new Error('Invalid demo handle');
     }
