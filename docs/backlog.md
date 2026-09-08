@@ -23,9 +23,9 @@ T001/T002 establish the protocol combination. T003/T004 establish host feasibili
 
 ## Following milestones
 
-- [ ] T101 Core interfaces and single-writer SQLite store.
+- [x] T101 Core adapter interfaces and transactional SQLite task records. A coordinator-wide single-instance lock remains follow-up work.
 - [ ] T102 Deterministic batch example and artifact verification.
-- [ ] T103 CLI lifecycle and presentation.
+- [x] T103 Initial CLI submit/list/status/recover flow with demo adapter and JSON output. Live MCP, cancellation and input commands remain follow-up work.
 - [ ] T201 Recovery scan, unknown submission, backoff, authentication, expiry.
 - [ ] T202 Outbox and idempotent delivery adapter.
 - [ ] T203 Automated fault matrix.

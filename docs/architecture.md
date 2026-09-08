@@ -77,4 +77,4 @@ Proposed host operations: associate a task, present status, present input, deliv
 
 ## Runtime boundaries
 
-MVP allows one coordinator writer, enforced by a startup lock. Keep credentials out of the task database and test evidence. Arguments/results may contain sensitive content: use controlled local storage, redacted logs, and documented retention. Dependency and wire compatibility belong at the protocol boundary rather than throughout the core.
+The initial runtime uses SQLite immediate transactions to serialize record updates; it does not yet enforce a coordinator-wide startup lock. Concurrent processes can still duplicate observation, so multi-coordinator scheduling remains outside the initial guarantee. Keep credentials out of the task database and test evidence. Arguments/results may contain sensitive content: use controlled local storage, redacted logs, and documented retention. Dependency and wire compatibility belong at the protocol boundary rather than throughout the core.

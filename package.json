@@ -3,8 +3,10 @@
   "version": "0.0.0",
   "description": "A client-side approach to managing long-running MCP tasks across disconnects and restarts.",
   "scripts": {
-    "check": "node --check tests/compatibility/sdk-tasks.test.mjs",
-    "test": "node --test tests/compatibility/*.test.mjs"
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "test": "npm run build && node --test tests/compatibility/*.test.mjs tests/runtime/*.test.mjs",
+    "start": "node dist/cli.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,10 @@
   },
   "private": true,
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "7.0.2"
   }
 }

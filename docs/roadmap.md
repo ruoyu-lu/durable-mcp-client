@@ -11,7 +11,7 @@ Deliver:
 - A Harness external-plugin probe for raw task responses, session association, restart recovery, and idempotent delivery.
 - `docs/compatibility.md` with commands, versions, results, and source locations.
 
-Gate: a working protocol combination and evidence of a viable host path. If Harness cannot be integrated reasonably, retain the standalone CLI path and document missing seams. Do not develop business logic against an unresolved protocol combination or an unpinned “latest” dependency.
+Gate: a working protocol combination and evidence of a viable host path. If Harness cannot be integrated reasonably, retain the standalone CLI path and document missing seams. Keep unresolved protocol behavior behind replaceable adapters. Protocol-independent core implementation proceeds immediately; never rely on an unpinned “latest” dependency.
 
 ## M1 — Standalone lifecycle
 
@@ -41,4 +41,4 @@ Gate: a clean environment reproduces the example; every required case has an out
 
 ## Sequence
 
-Run a small host probe early, then implement the core through the independent CLI. Build tests alongside features. The final milestone consolidates evidence; it does not defer reliability work until the end.
+Implement runnable core slices through the independent CLI while evaluating protocol and host adapters. Build tests alongside features. The final milestone consolidates evidence; it does not defer reliability work until the end.

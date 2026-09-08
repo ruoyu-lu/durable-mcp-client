@@ -1,4 +1,4 @@
-name: SDK compatibility
+name: Build and test
 on:
   push:
     branches: [main]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  client-probe:
+  runtime:
     runs-on: ubuntu-latest
     strategy:
       matrix:
