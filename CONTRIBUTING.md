@@ -4,7 +4,6 @@ Read the [product scope](docs/product.md), [architecture](docs/architecture.md),
 
 ## Changes
 
-- Use English for documentation, code comments, issues, and pull requests.
 - Keep protocol, coordination, and host-specific behavior separate.
 - Pin and record dependency/specification versions for compatibility claims.
 - Add reproducible tests for recovery behavior and race conditions.
