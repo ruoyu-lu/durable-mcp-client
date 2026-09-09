@@ -12,7 +12,7 @@ Durable MCP Client focuses on keeping remote tasks connected to the people and a
 - **Reliable result delivery** uses a local outbox and host-side deduplication where supported.
 - **Independent adapters** keep protocol handling, a standalone CLI, and agent-host integrations separate.
 
-The implementation roadmap starts with a compatible MCP Tasks / SDK / FastMCP combination and a small DeepSeek Harness integration probe. The client core is developed through a standalone CLI before full host integration.
+The SQLite coordinator and standalone CLI can run against the included demo adapter. MCP and host integrations are developed behind replaceable adapter boundaries.
 
 ## Architecture
 
@@ -43,21 +43,32 @@ Server scheduling and execution are delegated to existing runtimes. Here, **dura
 | [Decision record](docs/decisions/0001-scope-and-reuse.md) | Scope and reuse strategy |
 | [Backlog](docs/backlog.md) | Development tasks and progress |
 
-## Development
+## Run the CLI
 
-The proposed stack is TypeScript for the client and adapters, Python for a FastMCP example server, SQLite for local records, and Redis or Valkey for the server runtime. The first SDK probe pins the published client and records both working behavior and compatibility gaps; see the [compatibility baseline](docs/compatibility.md).
-
-Run the compatibility probes with Node 22 or newer:
+Requires Node 22.13 or newer. This version uses Node's built-in SQLite, which may emit an experimental-feature warning.
 
 ```sh
 npm ci --ignore-scripts
+npm run build
+node dist/cli.js submit --text "hello after restart" --delay-ms 1000
+# Exit the shell/process if desired. Reuse the same database path.
+node dist/cli.js list
+node dist/cli.js recover
+node dist/cli.js status <task-id>
+```
+
+Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status.
+
+The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. Cancellation, input handling, host delivery and continuous polling are not implemented yet. The database stores task input/results in plaintext; use non-sensitive demo data.
+
+## Development
+
+```sh
 npm run check
 npm test
 ```
 
-These tests characterize the SDK, including known Tasks limitations; they are not an end-to-end server interoperability test.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+Tests compile the TypeScript runtime and cover separate-process CLI recovery, persistent handles, unknown submissions, observation failures and terminal-state preservation. Additional SDK probes characterize known compatibility gaps. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [compatibility baseline](docs/compatibility.md).
 
 ## License
 

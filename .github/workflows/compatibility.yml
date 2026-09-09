@@ -1,4 +1,4 @@
-name: SDK compatibility
+name: Build and test
 on:
   push:
     branches: [main]
@@ -6,11 +6,11 @@ on:
 permissions:
   contents: read
 jobs:
-  client-probe:
+  runtime:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [22, 24]
+        node: ['22.13.0', '24']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
