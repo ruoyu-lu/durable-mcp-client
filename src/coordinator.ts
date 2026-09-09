@@ -8,14 +8,22 @@ export class TaskCoordinator {
     // Commit intent before any remote effect. An exception leaves an unknown
     // submission that recovery must never silently resubmit.
     const record = this.store.create(this.adapter.name, input);
+    let submitted: Awaited<ReturnType<TaskAdapter['submit']>>;
     try {
-      const submitted = await this.adapter.submit(input);
-      return this.store.accept(record.id, submitted.remoteId, submitted.snapshot);
+      submitted = await this.adapter.submit(input);
+      // Persist the known handle independently of potentially invalid payloads.
+      this.store.accept(record.id, submitted.remoteId);
     } catch (error) {
       this.store.recordError(record.id, error instanceof Error ? error.message : String(error));
       throw new Error(`Submission outcome unknown for ${record.id}: ${String(error)}`, { cause: error });
     }
+    try {
+      return this.store.observe(record.id, submitted.snapshot);
+    } catch (error) {
+      return this.store.recordError(record.id, error instanceof Error ? error.message : String(error));
+    }
   }
+
   async refresh(id: string): Promise<TaskRecord> {
     const record = this.store.get(id);
     if (record.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${record.adapter}`);

@@ -57,10 +57,10 @@ export class TaskStore {
       throw error;
     }
   }
-  accept(id: string, remoteId: string, snapshot: Snapshot): TaskRecord {
+  accept(id: string, remoteId: string, snapshot: Snapshot | null = null): TaskRecord {
     return this.change(id, record => {
       if (record.submission !== 'unknown') throw new Error('Task already accepted');
-      if (!remoteId) throw new Error('Adapter returned an empty task handle');
+      if (typeof remoteId !== 'string' || !remoteId) throw new Error('Adapter returned an invalid task handle');
       record.remoteId = remoteId;
       record.submission = 'accepted';
       record.snapshot = snapshot;

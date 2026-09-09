@@ -192,3 +192,34 @@ test('failed submission retains its original cause for diagnostics', async t => 
   });
   assert.equal(store.list()[0].observationError, cause.message);
 });
+
+
+test('invalid initial snapshot cannot discard an accepted handle across restart', async t => {
+  const path = database(t);
+  let store = new TaskStore(path);
+  const coordinator = new TaskCoordinator(store, {
+    name: 'initial-error',
+    submit: async () => ({ remoteId: 'known-handle', snapshot: { status: 'completed', result: 1n } }),
+    query: async () => { throw new Error('Not queried before restart'); },
+  });
+  const accepted = await coordinator.submit({});
+  assert.equal(accepted.submission, 'accepted');
+  assert.equal(accepted.remoteId, 'known-handle');
+  assert.equal(accepted.snapshot, null);
+  assert.match(accepted.observationError, /JSON/);
+  store.close();
+  store = new TaskStore(path);
+  t.after(() => store.close());
+  const resumed = new TaskCoordinator(store, {
+    name: 'initial-error',
+    submit: async () => { throw new Error('Must not resubmit'); },
+    query: async remoteId => {
+      assert.equal(remoteId, 'known-handle');
+      return { status: 'completed', result: 'recovered' };
+    },
+  });
+  const [result] = await resumed.recover();
+  assert.equal(result.id, accepted.id);
+  assert.equal(result.snapshot.result, 'recovered');
+  assert.equal(result.observationError, null);
+});
