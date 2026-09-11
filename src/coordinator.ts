@@ -18,7 +18,7 @@ export class TaskCoordinator {
       throw new Error(`Submission outcome unknown for ${record.id}: ${String(error)}`, { cause: error });
     }
     try {
-      return this.store.observe(record.id, submitted.snapshot);
+      return submitted.snapshot === null ? this.store.get(record.id) : this.store.observe(record.id, submitted.snapshot);
     } catch (error) {
       return this.store.recordError(record.id, error instanceof Error ? error.message : String(error));
     }

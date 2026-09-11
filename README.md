@@ -12,7 +12,7 @@ Durable MCP Client focuses on keeping remote tasks connected to the people and a
 - **Reliable result delivery** uses a local outbox and host-side deduplication where supported.
 - **Independent adapters** keep protocol handling, a standalone CLI, and agent-host integrations separate.
 
-The SQLite coordinator and standalone CLI can run against the included demo adapter. MCP and host integrations are developed behind replaceable adapter boundaries.
+The SQLite coordinator and standalone CLI can run against the demo adapter or a modern MCP JSON HTTP endpoint. Host integrations remain behind replaceable adapter boundaries.
 
 ## Architecture
 
@@ -60,6 +60,18 @@ node dist/cli.js status <task-id>
 Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status.
 
 The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. Cancellation, input handling, host delivery and continuous polling are not implemented yet. The database stores task input/results in plaintext; use non-sensitive demo data.
+
+## MCP HTTP endpoint
+
+```sh
+node dist/cli.js submit --server http://localhost:8000/mcp --tool batch --arguments '{"count":2}'
+node dist/cli.js recover --server http://localhost:8000/mcp
+node dist/cli.js status <task-id> --server http://localhost:8000/mcp
+```
+
+Reuse the same endpoint and database after restart. The adapter binds records to the endpoint, discovers support for protocol `2026-07-28` and the Tasks extension, then calls `tools/call` and `tasks/get`. Accepted handles are saved before reading task state; the initial snapshot is null until queried. Direct tool results are stored as completed records with a local handle.
+
+This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP interoperability is not yet verified. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation, cancellation and input responses are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
 
 ## Development
 
