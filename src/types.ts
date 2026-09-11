@@ -19,7 +19,7 @@ export interface TaskRecord {
 }
 export interface TaskAdapter {
   readonly name: string;
-  submit(input: unknown): Promise<{ remoteId: string; snapshot: Snapshot }>;
+  submit(input: unknown): Promise<{ remoteId: string; snapshot: Snapshot | null }>;
   query(remoteId: string): Promise<Snapshot>;
 }
 export function isTerminal(snapshot: Snapshot | null): boolean {
