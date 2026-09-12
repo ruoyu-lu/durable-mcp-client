@@ -6,7 +6,8 @@
     "build": "tsc",
     "check": "tsc --noEmit",
     "test": "npm run build && node --test tests/compatibility/*.test.mjs tests/runtime/*.test.mjs",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "test:fastmcp": "npm run build && node --test tests/integration/fastmcp.test.mjs"
   },
   "repository": {
     "type": "git",

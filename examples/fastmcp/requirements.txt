@@ -1,0 +1,4 @@
+fastmcp[tasks]==4.0.3
+fastmcp-tasks==4.0.3
+pydocket==0.25.2
+mcp==2.2.0
