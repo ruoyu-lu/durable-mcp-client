@@ -1,6 +1,6 @@
 # Backlog
 
-Updated: 2026-09-08.
+Updated: 2026-09-13.
 
 ## Completed
 
@@ -13,7 +13,7 @@ Updated: 2026-09-08.
 ## M0: next
 
 - [x] T001 Pin Tasks revision and record capabilities, methods, result, input, and cancellation semantics. See [compatibility baseline](compatibility.md) (issue #1).
-- [ ] T002 Establish compatible FastMCP/tasks/Docket/SDK versions. Client 2.0.0 probe records modern Tasks gaps; see [compatibility](compatibility.md) and issue #3. Runtime and extension selection remain pending.
+- [x] T002 Establish a compatible JSON HTTP combination: FastMCP/tasks 4.0.3, pydocket 0.25.2, Python MCP 2.2.0 and the client HTTP shim. SDK 2.0.0 gaps remain isolated; see [compatibility](compatibility.md).
 - [ ] T003 Audit Harness MCP providers, jobs, session events, and delivery; compare related durable clients.
 - [ ] T004 Build the minimal external-plugin probe for persistent association and idempotent delivery.
 - [ ] T005 Exercise direct results, asynchronous observation, input, and cancellation in isolation.
@@ -24,8 +24,8 @@ T001/T002 establish the protocol combination. T003/T004 establish host feasibili
 ## Following milestones
 
 - [x] T101 Core adapter interfaces and transactional SQLite task records. A coordinator-wide single-instance lock remains follow-up work.
-- [ ] T102 Deterministic batch example and artifact verification.
-- [x] T103 Initial CLI submit/list/status/recover flow with demo adapter and JSON output. Live MCP, cancellation and input commands remain follow-up work.
+- [x] T102 FastMCP background batch hashing example with independently verified digests across client process restarts.
+- [x] T103 Initial CLI submit/list/status/recover flow with demo adapter and JSON output. Live MCP JSON HTTP is implemented; cancellation and input commands remain follow-up work.
 - [ ] T201 Recovery scan, unknown submission, backoff, authentication, expiry.
 - [ ] T202 Outbox and idempotent delivery adapter.
 - [ ] T203 Automated fault matrix.

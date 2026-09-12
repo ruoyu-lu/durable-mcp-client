@@ -47,8 +47,8 @@ Examples are illustrative and sometimes omit capability metadata or use inconsis
 | --- | --- | --- |
 | Tasks extension | Immutable source and digest; matrix above | Source baseline established |
 | TypeScript SDK | `@modelcontextprotocol/client@2.0.0`, pinned in package-lock.json; fetch-seam tests below | Modern Tasks blocked in the public client API |
-| FastMCP/tasks/Docket | Repository release lookup alone is insufficient | T002 pending |
-| HTTP wire behavior | Real SDK serialization tested through an injected fetch responder; no sockets or FastMCP | T005 real-server probe pending |
+| FastMCP/tasks/Docket | FastMCP 4.0.3, fastmcp-tasks 4.0.3, pydocket 0.25.2, Python MCP 2.2.0; real background hashing example | JSON HTTP submission and client-restart recovery verified; Redis persistence untested |
+| HTTP wire behavior | Loopback fixture tests and real FastMCP integration through separate CLI processes | JSON HTTP task submission, working state and completed result verified; input/cancel pending |
 | Harness | No source audit or plugin probe completed | T003/T004 pending |
 
 Do not interpret these pending rows as successful interoperability.
@@ -80,4 +80,4 @@ The tests assert these observed limitations to detect changes in the pinned base
 
 The SDK's declared client options document a legacy default and explicit `versionNegotiation: { mode: { pin: '2026-07-28' } }`. Its discovery result schema requires `supportedVersions`, not a single `protocolVersion` field. Package metadata and installed declarations/behavior, rather than the monorepo root version, determine this finding.
 
-The CLI now uses a replaceable JSON HTTP shim for the pinned Tasks contract. Socket-level tests cover submission, durable handle recovery, direct results and invalid observations. This does not establish FastMCP interoperability. Next T002 action: verify a minimal FastMCP example against this adapter. PyPI reports FastMCP 4.0.3 with the separate fastmcp-tasks 4.0.3 extra; this is metadata only, not an installed/verified runtime combination. T002 remains open in the backlog.
+The CLI now uses a replaceable JSON HTTP shim for the pinned Tasks contract. Socket-level tests cover submission, durable handle recovery, direct results and invalid observations. The real-server integration test now verifies FastMCP task submission and client-restart recovery. Run `npm run test:fastmcp` after installing the example requirements. The example pins the verified core packages; Redis durability and broader transport coverage remain untested.
