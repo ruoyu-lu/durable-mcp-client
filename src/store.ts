@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
 import { mkdirSync } from 'node:fs';
+import { isTerminal } from './types.js';
 import type { Snapshot, TaskRecord } from './types.js';
 
 export class TaskStore {
@@ -73,6 +74,20 @@ export class TaskStore {
       if (record.snapshot && ['completed', 'failed', 'cancelled'].includes(record.snapshot.status)) return false;
       record.snapshot = snapshot;
       record.observationError = null;
+    });
+  }
+  requestCancellation(id: string, attemptId: string): TaskRecord {
+    return this.change(id, record => {
+      if (isTerminal(record.snapshot)) return false;
+      if (record.submission !== 'accepted' || !record.remoteId) throw new Error('Cannot cancel an unknown submission');
+      record.cancellation = { attemptId, requestedAt: new Date().toISOString(), outcome: 'pending', error: null };
+    });
+  }
+  finishCancellation(id: string, attemptId: string, error: string | null): TaskRecord {
+    return this.change(id, record => {
+      if (record.cancellation?.attemptId !== attemptId) return false;
+      record.cancellation.outcome = error === null ? 'acknowledged' : 'unknown';
+      record.cancellation.error = error;
     });
   }
   recordError(id: string, message: string): TaskRecord {

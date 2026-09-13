@@ -62,6 +62,11 @@ export class HttpTaskAdapter implements TaskAdapter {
     throw new Error('Unsupported tool result');
   }
 
+  async cancel(remoteId: string): Promise<void> {
+    const result = await this.request('tasks/cancel', { taskId: remoteId }, remoteId);
+    if (result.resultType !== 'complete') throw new Error('Invalid cancellation acknowledgment');
+  }
+
   async query(remoteId: string): Promise<Snapshot> {
     const result = await this.request('tasks/get', { taskId: remoteId }, remoteId);
     if (result.resultType !== 'complete' || result.taskId !== remoteId || !['working', 'input_required', 'completed', 'failed', 'cancelled'].includes(result.status)) {

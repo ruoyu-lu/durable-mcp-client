@@ -14,12 +14,15 @@ export interface TaskRecord {
   submission: 'unknown' | 'accepted';
   snapshot: Snapshot | null;
   observationError: string | null;
+  /** Latest explicit cancellation attempt; absent on older/untouched records. */
+  cancellation?: { attemptId: string; requestedAt: string; outcome: 'pending' | 'acknowledged' | 'unknown'; error: string | null };
   createdAt: string;
   updatedAt: string;
 }
 export interface TaskAdapter {
   readonly name: string;
   submit(input: unknown): Promise<{ remoteId: string; snapshot: Snapshot | null }>;
+  cancel?(remoteId: string): Promise<void>;
   query(remoteId: string): Promise<Snapshot>;
 }
 export function isTerminal(snapshot: Snapshot | null): boolean {

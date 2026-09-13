@@ -6,12 +6,12 @@ import { HttpTaskAdapter } from './adapters/http.js';
 import { DemoAdapter } from './adapters/demo.js';
 
 const usage = `Durable MCP Client
-Usage: node dist/cli.js <submit|status|list|recover> [task-id] [options]
+Usage: node dist/cli.js <submit|status|list|recover|cancel> [task-id] [options]
   --db PATH       SQLite database (default: .runtime/tasks.sqlite)
   --text TEXT     Demo result for submit
   --delay-ms N    Demo readiness delay, 0..86400000 (default: 1000)
   --help          Show help
---server URL    Use a modern MCP JSON HTTP endpoint (also required for status/recover)
+  --server URL    Use a modern MCP JSON HTTP endpoint (also required for status/recover/cancel)
   --tool NAME     Remote tool for submit
   --arguments JSON  Remote tool arguments (default: {})`;
 
@@ -24,8 +24,8 @@ async function main(): Promise<void> {
   } });
   if (values.help) { console.log(usage); return; }
   const [command, id] = positionals;
-  if (!command || !['submit', 'status', 'list', 'recover'].includes(command)) throw new Error(usage);
-  if (positionals.length !== (command === 'status' ? 2 : 1)) throw new Error('Invalid command arguments');
+  if (!command || !['submit', 'status', 'list', 'recover', 'cancel'].includes(command)) throw new Error(usage);
+  if (positionals.length !== (['status', 'cancel'].includes(command) ? 2 : 1)) throw new Error('Invalid command arguments');
   const delayMs = Number(values['delay-ms']);
   if (command === 'submit' && !values.server && (values.text === undefined || !Number.isSafeInteger(delayMs) || delayMs < 0 || delayMs > 86400000)) {
     throw new Error('submit requires --text and --delay-ms between 0 and 86400000');
@@ -37,6 +37,7 @@ async function main(): Promise<void> {
   try {
     const coordinator = new TaskCoordinator(store, adapter);
     const result = command === 'submit' ? await coordinator.submit(input)
+      : command === 'cancel' ? await coordinator.cancel(id!)
       : command === 'status' ? await coordinator.refresh(id!)
       : command === 'recover' ? await coordinator.recover() : store.list();
     console.log(JSON.stringify(result, null, 2));

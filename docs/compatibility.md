@@ -48,7 +48,7 @@ Examples are illustrative and sometimes omit capability metadata or use inconsis
 | Tasks extension | Immutable source and digest; matrix above | Source baseline established |
 | TypeScript SDK | `@modelcontextprotocol/client@2.0.0`, pinned in package-lock.json; fetch-seam tests below | Modern Tasks blocked in the public client API |
 | FastMCP/tasks/Docket | FastMCP 4.0.3, fastmcp-tasks 4.0.3, pydocket 0.25.2, Python MCP 2.2.0; real background hashing example | JSON HTTP submission and client-restart recovery verified; Redis persistence untested |
-| HTTP wire behavior | Loopback fixture tests and real FastMCP integration through separate CLI processes | JSON HTTP task submission, working state and completed result verified; input/cancel pending |
+| HTTP wire behavior | Loopback fixture tests and real FastMCP integration through separate CLI processes | JSON HTTP task submission, working state and completed result verified; cancellation acknowledgment and confirmed state verified; input pending |
 | Harness | No source audit or plugin probe completed | T003/T004 pending |
 
 Do not interpret these pending rows as successful interoperability.

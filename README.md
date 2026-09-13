@@ -59,7 +59,7 @@ node dist/cli.js status <task-id>
 
 Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status.
 
-The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. Cancellation, input handling, host delivery and continuous polling are not implemented yet. The database stores task input/results in plaintext; use non-sensitive demo data.
+The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. The demo adapter does not support cancellation. Input handling, host delivery and continuous polling are not implemented yet. The database stores task input/results in plaintext; use non-sensitive demo data.
 
 ## MCP HTTP endpoint
 
@@ -71,7 +71,18 @@ node dist/cli.js status <task-id> --server http://localhost:8000/mcp
 
 Reuse the same endpoint and database after restart. The adapter binds records to the endpoint, discovers support for protocol `2026-07-28` and the Tasks extension, then calls `tools/call` and `tasks/get`. Accepted handles are saved before reading task state; the initial snapshot is null until queried. Direct tool results are stored as completed records with a local handle.
 
-This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation, cancellation and input responses are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
+This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation and input responses are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
+
+## Cancel a remote task
+
+```sh
+node dist/cli.js cancel <task-id> --server http://localhost:8000/mcp
+node dist/cli.js status <task-id> --server http://localhost:8000/mcp
+```
+
+Cancellation intent is persisted before sending `tasks/cancel`. The returned record's `cancellation.outcome` is `acknowledged` when the server acknowledges the request, or `unknown` if it fails or the response cannot be validated. A crash can leave `pending`; that does not prove whether the request reached the server. These values are separate from the task's observed status: only a query can confirm `cancelled`, and work may complete before cancellation takes effect.
+
+`status` and `recover` keep querying without automatically resending cancellation. Repeat `cancel` explicitly if desired. A terminal task is returned unchanged; unknown submissions and unsupported adapters are rejected. Existing database records need no migration. Cancellation errors appear in `cancellation.error`; as with query failures, inspect the JSON record rather than relying only on the exit code.
 
 ## Development
 
