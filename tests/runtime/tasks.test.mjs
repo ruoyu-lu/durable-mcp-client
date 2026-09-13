@@ -223,3 +223,63 @@ test('invalid initial snapshot cannot discard an accepted handle across restart'
   assert.equal(result.snapshot.result, 'recovered');
   assert.equal(result.observationError, null);
 });
+
+test('cancellation ack survives restart without claiming cancellation or replaying requests', async t => {
+  const db = database(t);
+  let store = new TaskStore(db), calls = 0;
+  const adapter = { name: 'cancel-test', submit: async () => ({ remoteId: 'remote', snapshot: { status: 'working' } }),
+    cancel: async () => { calls++; assert.equal(store.list()[0].cancellation.outcome, 'pending'); },
+    query: async () => ({ status: 'completed', result: { wonRace: true } }) };
+  const coordinator = new TaskCoordinator(store, adapter);
+  const task = await coordinator.submit({});
+  const ack = await coordinator.cancel(task.id);
+  assert.equal(ack.snapshot.status, 'working'); assert.equal(ack.cancellation.outcome, 'acknowledged');
+  store.close(); store = new TaskStore(db);
+  try {
+    const recovered = (await new TaskCoordinator(store, adapter).recover())[0];
+    assert.equal(recovered.snapshot.status, 'completed'); assert.equal(recovered.cancellation.outcome, 'acknowledged');
+    assert.deepEqual(await new TaskCoordinator(store, adapter).cancel(task.id), recovered);
+    assert.equal(calls, 1);
+  } finally { store.close(); }
+});
+
+test('lost cancel response and interrupted attempt remain queryable without automatic replay', async t => {
+  const db = database(t); let store = new TaskStore(db); let calls = 0;
+  const adapter = { name: 'cancel-test', submit: async () => ({ remoteId: 'remote', snapshot: { status: 'working' } }),
+    cancel: async () => { calls++; throw new Error('connection lost'); }, query: async () => ({ status: 'cancelled' }) };
+  const coordinator = new TaskCoordinator(store, adapter);
+  const task = await coordinator.submit({});
+  const unknown = await coordinator.cancel(task.id);
+  assert.equal(unknown.cancellation.outcome, 'unknown'); assert.match(unknown.cancellation.error, /connection lost/);
+  assert.equal(unknown.snapshot.status, 'working');
+  // Simulate a later explicit attempt interrupted after its intent was committed.
+  store.requestCancellation(task.id, 'interrupted'); store.close(); store = new TaskStore(db);
+  try {
+    assert.equal(store.get(task.id).cancellation.outcome, 'pending');
+    assert.equal((await new TaskCoordinator(store, adapter).recover())[0].snapshot.status, 'cancelled');
+    assert.equal(calls, 1);
+  } finally { store.close(); }
+});
+
+test('cancel rejects unknown submissions, adapter mismatch and unsupported adapters', async t => {
+  const store = new TaskStore(database(t)); t.after(() => store.close());
+  const adapter = { name: 'test', query: async () => ({ status: 'working' }) };
+  const task = store.create('test', {});
+  await assert.rejects(new TaskCoordinator(store, adapter).cancel(task.id), /unknown submission/);
+  store.accept(task.id, 'remote');
+  await assert.rejects(new TaskCoordinator(store, adapter).cancel(task.id), /does not support/);
+  await assert.rejects(new TaskCoordinator(store, { ...adapter, name: 'other' }).cancel(task.id), /mismatch/);
+  assert.equal(store.get(task.id).cancellation, undefined);
+});
+
+test('late cancellation acknowledgments cannot overwrite a newer attempt or terminal result', t => {
+  const store = new TaskStore(database(t)); t.after(() => store.close());
+  const task = store.create('test', {}); store.accept(task.id, 'remote', { status: 'working' });
+  store.requestCancellation(task.id, 'first'); store.requestCancellation(task.id, 'second');
+  store.finishCancellation(task.id, 'second', 'offline');
+  store.finishCancellation(task.id, 'first', null);
+  assert.equal(store.get(task.id).cancellation.outcome, 'unknown');
+  store.observe(task.id, { status: 'completed', result: 'done' });
+  store.finishCancellation(task.id, 'second', null);
+  assert.equal(store.get(task.id).snapshot.result, 'done');
+});

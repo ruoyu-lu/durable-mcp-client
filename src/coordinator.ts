@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { TaskAdapter, TaskRecord } from './types.js';
 import { isTerminal } from './types.js';
 import { TaskStore } from './store.js';
@@ -34,6 +35,24 @@ export class TaskCoordinator {
       // A network/adapter error is not a remote task failure.
       return this.store.recordError(id, String(error));
     }
+  }
+  async cancel(id: string): Promise<TaskRecord> {
+    const record = this.store.get(id);
+    if (record.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${record.adapter}`);
+    if (isTerminal(record.snapshot)) return record;
+    if (record.submission !== 'accepted' || !record.remoteId) throw new Error('Cannot cancel an unknown submission');
+    if (!this.adapter.cancel) throw new Error('Adapter does not support cancellation');
+    const attemptId = randomUUID();
+    const pending = this.store.requestCancellation(id, attemptId);
+    if (isTerminal(pending.snapshot)) return pending;
+    try {
+      await this.adapter.cancel(record.remoteId);
+    } catch (error) {
+      return this.store.finishCancellation(id, attemptId, String(error));
+    }
+    // An acknowledgment is not a terminal observation. Recovery only polls;
+    // it never replays a cancellation whose response may have been lost.
+    return this.store.finishCancellation(id, attemptId, null);
   }
   async recover(): Promise<TaskRecord[]> {
     const results: TaskRecord[] = [];

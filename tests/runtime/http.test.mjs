@@ -66,3 +66,13 @@ test('malformed terminal snapshots remain observation errors', async t => {
   const { endpoint } = await fixture(t, () => ({ resultType: 'complete', taskId: 'task', status: 'completed' }));
   await assert.rejects(new HttpTaskAdapter(endpoint).query('task'), /no result/);
 });
+
+test('HTTP cancellation routes task ID and validates acknowledgment', async t => {
+  let valid = true;
+  const { endpoint, calls } = await fixture(t, () => ({ resultType: valid ? 'complete' : 'task' }));
+  const adapter = new HttpTaskAdapter(endpoint);
+  await adapter.cancel('remote-task');
+  assert.equal(calls[0].method, 'tasks/cancel'); assert.equal(calls[0].params.taskId, 'remote-task');
+  valid = false;
+  await assert.rejects(adapter.cancel('remote-task'), /Invalid cancellation acknowledgment/);
+});

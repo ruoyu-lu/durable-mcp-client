@@ -60,4 +60,21 @@ test('FastMCP background hashes survive CLI restart and match independent digest
   assert.equal((await run('list')).length, 1);
   assert.deepEqual(await run('recover'), []);
   assert.deepEqual(await run('status', submitted.id), completed);
+  const cancellable = await run('submit', '--tool', 'hash_batch', '--arguments', JSON.stringify({ texts, delay_ms: 10000 }));
+  const acknowledged = await run('cancel', cancellable.id);
+  assert.equal(acknowledged.cancellation.outcome, 'acknowledged');
+  assert.equal(acknowledged.snapshot, null, 'An ack alone cannot establish remote status');
+  let cancelled;
+  const cancelDeadline = Date.now() + 10000;
+  while (Date.now() < cancelDeadline) {
+    const record = await run('status', cancellable.id);
+    assert.equal(record.observationError, null);
+    if (record.snapshot.status === 'cancelled') { cancelled = record; break; }
+    assert.equal(record.snapshot.status, 'working');
+    await delay(250);
+  }
+  assert.ok(cancelled, 'FastMCP must confirm cancellation in this example');
+  assert.equal(cancelled.remoteId, cancellable.remoteId);
+  assert.deepEqual(await run('cancel', cancellable.id), cancelled);
+
 });
