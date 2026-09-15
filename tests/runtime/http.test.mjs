@@ -76,3 +76,41 @@ test('HTTP cancellation routes task ID and validates acknowledgment', async t =>
   valid = false;
   await assert.rejects(adapter.cancel('remote-task'), /Invalid cancellation acknowledgment/);
 });
+
+test('CLI retains outstanding input across restart and malformed observations', async t => {
+  const inputRequests = { approval: { method: 'elicitation/create', params: {
+    mode: 'form', message: 'Choose a label', requestedSchema: { type: 'object', properties: { label: { type: 'string' } } },
+  } } };
+  let state = 'input_required', malformed = false;
+  const { endpoint, calls } = await fixture(t, body => body.method === 'tools/call'
+    ? { resultType: 'task', taskId: 'input-task' }
+    : { resultType: 'complete', taskId: 'input-task', status: state,
+      ...(state === 'input_required' ? { inputRequests: malformed ? { approval: { method: 123 } } : inputRequests } : {}) });
+  const dir = await mkdtemp(join(tmpdir(), 'mcp-input-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const run = async (...args) => JSON.parse((await exec(process.execPath, ['dist/cli.js', ...args, '--db', join(dir, 'tasks.sqlite'), '--server', endpoint])).stdout);
+  const submitted = await run('submit', '--tool', 'interactive');
+  const waiting = await run('status', submitted.id);
+  assert.deepEqual(waiting.snapshot.inputRequests, inputRequests);
+  assert.deepEqual((await run('list'))[0].snapshot, waiting.snapshot);
+  assert.deepEqual((await run('recover'))[0].snapshot, waiting.snapshot);
+  malformed = true;
+  const invalid = await run('status', submitted.id);
+  assert.match(invalid.observationError, /Invalid input request method/);
+  assert.deepEqual(invalid.snapshot, waiting.snapshot);
+  state = 'working';
+  const resumed = await run('status', submitted.id);
+  assert.equal(resumed.observationError, null);
+  assert.deepEqual(resumed.snapshot, { status: 'working' });
+  assert.equal(calls.filter(c => c.method === 'tools/call').length, 1);
+  assert.equal(calls.filter(c => c.method === 'tasks/update').length, 0);
+});
+
+test('input-required responses must contain a request map with valid envelopes', async t => {
+  let requests;
+  const { endpoint } = await fixture(t, () => ({ resultType: 'complete', taskId: 'task', status: 'input_required', inputRequests: requests }));
+  for (requests of [undefined, null, [], { key: null }, { key: { method: '' } }, { key: { method: 'custom/request', params: [] } }]) {
+    await assert.rejects(new HttpTaskAdapter(endpoint).query('task'));
+  }
+  requests = { custom: { method: 'custom/request' } };
+  assert.deepEqual((await new HttpTaskAdapter(endpoint).query('task')).inputRequests, requests);
+});

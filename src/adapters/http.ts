@@ -76,7 +76,16 @@ export class HttpTaskAdapter implements TaskAdapter {
     if (result.status === 'failed' && !('error' in result)) throw new Error('Failed task has no error');
     if (result.status === 'completed') object(result.result);
     if (result.status === 'failed') object(result.error);
-    return { status: result.status, ...(result.status === 'completed' ? { result: result.result } : {}),
+    let inputRequests: Snapshot['inputRequests'];
+    if (result.status === 'input_required') {
+      inputRequests = object(result.inputRequests);
+      for (const request of Object.values(inputRequests)) {
+        const entry = object(request);
+        if (typeof entry.method !== 'string' || !entry.method) throw new Error('Invalid input request method');
+        if ('params' in entry) object(entry.params);
+      }
+    }
+    return { ...(inputRequests ? { inputRequests } : {}), status: result.status, ...(result.status === 'completed' ? { result: result.result } : {}),
       ...(result.status === 'failed' ? { error: JSON.stringify(result.error) } : {}) };
   }
 }
