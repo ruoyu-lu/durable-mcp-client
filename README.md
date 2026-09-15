@@ -73,6 +73,12 @@ Reuse the same endpoint and database after restart. The adapter binds records to
 
 This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation and input responses are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
 
+## Inspect pending input
+
+When a task reports `input_required`, `status` and `recover` retain its request map in `snapshot.inputRequests`. Each entry preserves the server's method and parameters under its request key. `list` reads the saved requests without connecting to the server, including after a client restart. Malformed request envelopes become observation errors without replacing the last valid snapshot. A later working or terminal snapshot clears the outstanding requests.
+
+These requests are displayed as data only. The client does not execute server-requested actions or submit answers automatically. Explicit `tasks/update` input submission is not implemented yet.
+
 ## Cancel a remote task
 
 ```sh

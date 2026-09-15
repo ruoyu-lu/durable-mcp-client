@@ -4,6 +4,8 @@ export interface Snapshot {
   /** Plain JSON data; validated before persistence. */
   result?: unknown;
   error?: string;
+  /** Outstanding server requests, retained as data rather than executed. */
+  inputRequests?: Record<string, { method: string; params?: Record<string, unknown> }>;
 }
 export interface TaskRecord {
   id: string;
