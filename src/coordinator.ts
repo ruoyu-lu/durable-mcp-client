@@ -54,6 +54,19 @@ export class TaskCoordinator {
     // it never replays a cancellation whose response may have been lost.
     return this.store.finishCancellation(id, attemptId, null);
   }
+  async respond(id: string, key: string, response: Record<string, unknown>): Promise<TaskRecord> {
+    const record = this.store.get(id);
+    if (record.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${record.adapter}`);
+    if (!this.adapter.respond) throw new Error('Adapter does not support input responses');
+    // Reservation and duplicate check share a SQLite transaction across processes.
+    const pending = this.store.reserveInput(id, key, response);
+    try {
+      await this.adapter.respond(pending.remoteId!, key, response);
+    } catch (error) {
+      return this.store.finishInput(id, key, String(error));
+    }
+    return this.store.finishInput(id, key, null);
+  }
   async recover(): Promise<TaskRecord[]> {
     const results: TaskRecord[] = [];
     for (const record of this.store.list()) {
