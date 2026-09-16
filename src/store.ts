@@ -90,6 +90,24 @@ export class TaskStore {
       record.cancellation.error = error;
     });
   }
+  reserveInput(id: string, key: string, response: Record<string, unknown>): TaskRecord {
+    assertJsonValue(response, 'Input response');
+    if (!response || typeof response !== 'object' || Array.isArray(response)) throw new Error('Input response must be an object');
+    return this.change(id, record => {
+      if (record.submission !== 'accepted' || !record.remoteId || record.snapshot?.status !== 'input_required'
+        || !Object.hasOwn(record.snapshot.inputRequests ?? {}, key)) throw new Error('Request key is not outstanding');
+      if (record.inputResponses?.some(item => item.key === key)) throw new Error('Response already attempted; query the task before reconciliation');
+      (record.inputResponses ??= []).push({ key, response, outcome: 'pending', error: null });
+    });
+  }
+  finishInput(id: string, key: string, error: string | null): TaskRecord {
+    return this.change(id, record => {
+      const attempt = record.inputResponses?.find(item => item.key === key);
+      if (!attempt || attempt.outcome !== 'pending') return false;
+      attempt.outcome = error === null ? 'acknowledged' : 'unknown';
+      attempt.error = error;
+    });
+  }
   recordError(id: string, message: string): TaskRecord {
     return this.change(id, record => { record.observationError = message; });
   }

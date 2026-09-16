@@ -18,12 +18,14 @@ export interface TaskRecord {
   observationError: string | null;
   /** Latest explicit cancellation attempt; absent on older/untouched records. */
   cancellation?: { attemptId: string; requestedAt: string; outcome: 'pending' | 'acknowledged' | 'unknown'; error: string | null };
+  inputResponses?: Array<{ key: string; response: Record<string, unknown>; outcome: 'pending' | 'acknowledged' | 'unknown'; error: string | null }>;
   createdAt: string;
   updatedAt: string;
 }
 export interface TaskAdapter {
   readonly name: string;
   submit(input: unknown): Promise<{ remoteId: string; snapshot: Snapshot | null }>;
+  respond?(remoteId: string, key: string, response: Record<string, unknown>): Promise<void>;
   cancel?(remoteId: string): Promise<void>;
   query(remoteId: string): Promise<Snapshot>;
 }

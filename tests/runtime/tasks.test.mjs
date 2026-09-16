@@ -283,3 +283,38 @@ test('late cancellation acknowledgments cannot overwrite a newer attempt or term
   store.finishCancellation(task.id, 'second', null);
   assert.equal(store.get(task.id).snapshot.result, 'done');
 });
+
+test('input response loss survives reopen without replay and blocks a second writer', async t => {
+  const db = database(t); let store = new TaskStore(db); let sends = 0;
+  const task = store.create('input', {});
+  store.accept(task.id, 'remote', { status: 'input_required', inputRequests: { key: { method: 'elicitation/create' } } });
+  const adapter = { name: 'input', query: async () => ({ status: 'working' }), respond: async () => {
+    sends++;
+    const second = new TaskStore(db);
+    try { assert.throws(() => second.reserveInput(task.id, 'key', {}), /already attempted/); }
+    finally { second.close(); }
+    assert.equal(store.get(task.id).inputResponses[0].outcome, 'pending');
+    throw new Error('lost response');
+  } };
+  const unknown = await new TaskCoordinator(store, adapter).respond(task.id, 'key', { action: 'decline' });
+  assert.equal(unknown.inputResponses[0].outcome, 'unknown');
+  assert.match(unknown.inputResponses[0].error, /lost response/);
+  store.close(); store = new TaskStore(db);
+  try {
+    await assert.rejects(new TaskCoordinator(store, adapter).respond(task.id, 'key', {}), /already attempted/);
+    assert.equal((await new TaskCoordinator(store, adapter).recover())[0].snapshot.status, 'working');
+    assert.equal(sends, 1);
+  } finally { store.close(); }
+});
+
+test('input reservation validates keys and JSON and retains interrupted attempts', t => {
+  const db = database(t); let store = new TaskStore(db);
+  const task = store.create('input', {});
+  store.accept(task.id, 'remote', { status: 'input_required', inputRequests: { key: { method: 'elicitation/create' } } });
+  assert.throws(() => store.reserveInput(task.id, 'toString', {}), /not outstanding/);
+  for (const response of [null, [], { invalid: 1n }]) assert.throws(() => store.reserveInput(task.id, 'key', response));
+  assert.equal(store.get(task.id).inputResponses, undefined);
+  store.reserveInput(task.id, 'key', { action: 'cancel' }); store.close(); store = new TaskStore(db);
+  try { assert.equal(store.get(task.id).inputResponses[0].outcome, 'pending'); assert.throws(() => store.reserveInput(task.id, 'key', {}), /already attempted/); }
+  finally { store.close(); }
+});

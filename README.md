@@ -59,7 +59,7 @@ node dist/cli.js status <task-id>
 
 Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status.
 
-The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. The demo adapter does not support cancellation. Input handling, host delivery and continuous polling are not implemented yet. The database stores task input/results in plaintext; use non-sensitive demo data.
+The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. The demo adapter does not support cancellation. Host delivery and continuous polling are not implemented yet. The database stores task input/results in plaintext; use non-sensitive demo data.
 
 ## MCP HTTP endpoint
 
@@ -71,13 +71,22 @@ node dist/cli.js status <task-id> --server http://localhost:8000/mcp
 
 Reuse the same endpoint and database after restart. The adapter binds records to the endpoint, discovers support for protocol `2026-07-28` and the Tasks extension, then calls `tools/call` and `tasks/get`. Accepted handles are saved before reading task state; the initial snapshot is null until queried. Direct tool results are stored as completed records with a local handle.
 
-This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation and input responses are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
+This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
 
 ## Inspect pending input
 
 When a task reports `input_required`, `status` and `recover` retain its request map in `snapshot.inputRequests`. Each entry preserves the server's method and parameters under its request key. `list` reads the saved requests without connecting to the server, including after a client restart. Malformed request envelopes become observation errors without replacing the last valid snapshot. A later working or terminal snapshot clears the outstanding requests.
 
-These requests are displayed as data only. The client does not execute server-requested actions or submit answers automatically. Explicit `tasks/update` input submission is not implemented yet.
+These requests are displayed as data only. The client does not execute server-requested actions or submit answers automatically. Use `respond` to send a response object for one displayed request key:
+
+```sh
+node dist/cli.js respond <task-id> --server http://localhost:8000/mcp --request-key choice --response '{"action":"accept","content":{"label":"chosen"}}'
+node dist/cli.js status <task-id> --server http://localhost:8000/mcp
+```
+
+Inspect the request and supply the appropriate response explicitly. The client validates plain JSON and the outstanding key, but does not validate method-specific response schemas. Each key is reserved transactionally before sending. `inputResponses` records the response and `pending`, `acknowledged` or `unknown` outcome independently of task status. Duplicate attempts are rejected across processes, including after uncertain failures; no automatic replay or retry override is provided yet. Query the task to reconcile an uncertain outcome. Acknowledgment does not prove the task has resumed. Input responses are stored in plaintext alongside task data.
+
+The response flow is covered by loopback HTTP/process-restart tests; real FastMCP elicitation interoperability remains to be verified.
 
 ## Cancel a remote task
 
