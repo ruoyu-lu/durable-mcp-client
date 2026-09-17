@@ -77,4 +77,37 @@ test('FastMCP background hashes survive CLI restart and match independent digest
   assert.equal(cancelled.remoteId, cancellable.remoteId);
   assert.deepEqual(await run('cancel', cancellable.id), cancelled);
 
+  const interactive = await run('submit', '--tool', 'choose_label');
+  let waiting;
+  const inputDeadline = Date.now() + 10000;
+  while (Date.now() < inputDeadline) {
+    const record = await run('status', interactive.id);
+    assert.equal(record.observationError, null);
+    if (record.snapshot.status === 'input_required') { waiting = record; break; }
+    assert.equal(record.snapshot.status, 'working');
+    await delay(250);
+  }
+  assert.ok(waiting, `No input request: ${logs}`);
+  const [key, request] = Object.entries(waiting.snapshot.inputRequests)[0];
+  assert.equal(request.method, 'elicitation/create');
+  assert.equal(request.params.requestedSchema.properties.label.type, 'string');
+  assert.deepEqual((await run('list')).find(r => r.id === interactive.id).snapshot, waiting.snapshot);
+  const response = { action: 'accept', content: { label: 'reviewed batch' } };
+  const reply = await run('respond', interactive.id, '--request-key', key, '--response', JSON.stringify(response));
+  assert.equal(reply.inputResponses[0].outcome, 'acknowledged');
+  let finished;
+  const finishDeadline = Date.now() + 10000;
+  while (Date.now() < finishDeadline) {
+    const record = await run('status', interactive.id);
+    assert.equal(record.observationError, null);
+    if (record.snapshot.status === 'completed') { finished = record; break; }
+    assert.ok(['working', 'input_required'].includes(record.snapshot.status));
+    await delay(250);
+  }
+  assert.ok(finished, `Input task did not complete: ${logs}`);
+  assert.equal(finished.snapshot.result.isError, false, JSON.stringify(finished.snapshot.result));
+  assert.deepEqual(JSON.parse(finished.snapshot.result.content[0].text), { label: 'reviewed batch' });
+  assert.equal(finished.remoteId, interactive.remoteId);
+  assert.equal(finished.snapshot.inputRequests, undefined);
+
 });

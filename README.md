@@ -86,7 +86,7 @@ node dist/cli.js status <task-id> --server http://localhost:8000/mcp
 
 Inspect the request and supply the appropriate response explicitly. The client validates plain JSON and the outstanding key, but does not validate method-specific response schemas. Each key is reserved transactionally before sending. `inputResponses` records the response and `pending`, `acknowledged` or `unknown` outcome independently of task status. Duplicate attempts are rejected across processes, including after uncertain failures; no automatic replay or retry override is provided yet. Query the task to reconcile an uncertain outcome. Acknowledgment does not prove the task has resumed. Input responses are stored in plaintext alongside task data.
 
-The response flow is covered by loopback HTTP/process-restart tests; real FastMCP elicitation interoperability remains to be verified.
+The response flow is covered by loopback HTTP/process-restart tests and the real FastMCP `choose_label` example. Form elicitation through background task input is verified; standalone server-initiated requests and other input methods remain outside this coverage.
 
 ## Cancel a remote task
 
