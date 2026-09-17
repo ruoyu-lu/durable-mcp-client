@@ -1,6 +1,6 @@
 # Backlog
 
-Updated: 2026-09-14.
+Updated: 2026-09-18.
 
 ## Completed
 
@@ -25,7 +25,7 @@ T001/T002 establish the protocol combination. T003/T004 establish host feasibili
 
 - [x] T101 Core adapter interfaces and transactional SQLite task records. A coordinator-wide single-instance lock remains follow-up work.
 - [x] T102 FastMCP background batch hashing example with independently verified digests across client process restarts.
-- [x] T103 Initial CLI submit/list/status/recover flow with demo adapter and JSON output. Live MCP JSON HTTP is implemented; durable cancellation attempts and the cancel command are implemented; input commands remain follow-up work.
+- [x] T103 Initial CLI submit/list/status/recover flow with demo adapter and JSON output. Live MCP JSON HTTP is implemented; durable cancellation attempts and the cancel command are implemented; explicit input responses and real FastMCP form elicitation are verified.
 - [ ] T201 Recovery scan, unknown submission, backoff, authentication, expiry.
 - [ ] T202 Outbox and idempotent delivery adapter.
 - [ ] T203 Automated fault matrix.
