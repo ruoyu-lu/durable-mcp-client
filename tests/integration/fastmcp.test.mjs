@@ -43,16 +43,9 @@ test('FastMCP background hashes survive CLI restart and match independent digest
   const pending = await run('status', submitted.id);
   assert.equal(pending.observationError, null);
   assert.equal(pending.snapshot.status, 'working');
-  let completed;
-  const deadline = Date.now() + 15000;
-  while (Date.now() < deadline) {
-    const [record] = await run('recover');
-    assert.ok(record, 'The pending task must remain recoverable');
-    assert.equal(record.observationError, null);
-    if (record.snapshot.status === 'completed') { completed = record; break; }
-    assert.equal(record.snapshot.status, 'working');
-    await delay(250);
-  }
+  const waited = await run('wait', submitted.id, '--interval-ms', '100', '--timeout-ms', '15000');
+  assert.equal(waited.reason, 'terminal');
+  const completed = waited.task;
   assert.ok(completed, `Task did not finish: ${logs}`);
   assert.equal(completed.id, submitted.id);
   assert.equal(completed.remoteId, submitted.remoteId);
@@ -78,15 +71,9 @@ test('FastMCP background hashes survive CLI restart and match independent digest
   assert.deepEqual(await run('cancel', cancellable.id), cancelled);
 
   const interactive = await run('submit', '--tool', 'choose_label');
-  let waiting;
-  const inputDeadline = Date.now() + 10000;
-  while (Date.now() < inputDeadline) {
-    const record = await run('status', interactive.id);
-    assert.equal(record.observationError, null);
-    if (record.snapshot.status === 'input_required') { waiting = record; break; }
-    assert.equal(record.snapshot.status, 'working');
-    await delay(250);
-  }
+  const inputWait = await run('wait', interactive.id, '--interval-ms', '100', '--timeout-ms', '10000');
+  assert.equal(inputWait.reason, 'input_required');
+  const waiting = inputWait.task;
   assert.ok(waiting, `No input request: ${logs}`);
   const [key, request] = Object.entries(waiting.snapshot.inputRequests)[0];
   assert.equal(request.method, 'elicitation/create');

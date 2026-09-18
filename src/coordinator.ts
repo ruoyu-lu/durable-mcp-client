@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
 import type { TaskAdapter, TaskRecord } from './types.js';
 import { isTerminal } from './types.js';
@@ -25,12 +26,12 @@ export class TaskCoordinator {
     }
   }
 
-  async refresh(id: string): Promise<TaskRecord> {
+  async refresh(id: string, signal?: AbortSignal): Promise<TaskRecord> {
     const record = this.store.get(id);
     if (record.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${record.adapter}`);
     if (record.submission === 'unknown' || !record.remoteId || isTerminal(record.snapshot)) return record;
     try {
-      return this.store.observe(id, await this.adapter.query(record.remoteId));
+      return this.store.observe(id, await this.adapter.query(record.remoteId, signal));
     } catch (error) {
       // A network/adapter error is not a remote task failure.
       return this.store.recordError(id, String(error));
@@ -66,6 +67,25 @@ export class TaskCoordinator {
       return this.store.finishInput(id, key, String(error));
     }
     return this.store.finishInput(id, key, null);
+  }
+  async wait(id: string, intervalMs = 1000, timeoutMs = 60000): Promise<{ reason: 'terminal' | 'input_required' | 'unknown_submission' | 'timeout'; task: TaskRecord }> {
+    for (const [name, value] of [['interval', intervalMs], ['timeout', timeoutMs]] as const) {
+      if (!Number.isSafeInteger(value) || value < 1 || value > 86400000) throw new Error(`${name} must be an integer from 1 to 86400000 ms`);
+    }
+    const signal = AbortSignal.timeout(timeoutMs);
+    let task = this.store.get(id);
+    if (task.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${task.adapter}`);
+    while (true) {
+      if (isTerminal(task.snapshot)) return { reason: 'terminal', task };
+      if (task.submission === 'unknown') return { reason: 'unknown_submission', task };
+      if (signal.aborted) return { reason: 'timeout', task };
+      task = await this.refresh(id, signal);
+      if (isTerminal(task.snapshot)) return { reason: 'terminal', task };
+      if (signal.aborted) return { reason: 'timeout', task };
+      if (!task.observationError && task.snapshot?.status === 'input_required') return { reason: 'input_required', task };
+      try { await delay(intervalMs, undefined, { signal }); }
+      catch (error) { if (!signal.aborted) throw error; }
+    }
   }
   async recover(): Promise<TaskRecord[]> {
     const results: TaskRecord[] = [];

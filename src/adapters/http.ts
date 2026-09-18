@@ -21,10 +21,10 @@ export class HttpTaskAdapter implements TaskAdapter {
     this.name = `mcp-http-${version}:${createHash('sha256').update(this.endpoint.href).digest('hex')}`;
   }
 
-  private async request(method: string, params: Record<string, unknown>, name?: string): Promise<Record<string, any>> {
+  private async request(method: string, params: Record<string, unknown>, name?: string, signal?: AbortSignal): Promise<Record<string, any>> {
     const id = randomUUID();
     const response = await fetch(this.endpoint, {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(this.timeoutMs),
+      method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs),
       headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream',
         'Mcp-Protocol-Version': version, 'Mcp-Method': method, ...(name ? { 'Mcp-Name': name } : {}) },
       body: JSON.stringify({ jsonrpc: '2.0', id, method, params: { ...params, _meta: {
@@ -72,8 +72,8 @@ export class HttpTaskAdapter implements TaskAdapter {
     if (result.resultType !== 'complete') throw new Error('Invalid cancellation acknowledgment');
   }
 
-  async query(remoteId: string): Promise<Snapshot> {
-    const result = await this.request('tasks/get', { taskId: remoteId }, remoteId);
+  async query(remoteId: string, signal?: AbortSignal): Promise<Snapshot> {
+    const result = await this.request('tasks/get', { taskId: remoteId }, remoteId, signal);
     if (result.resultType !== 'complete' || result.taskId !== remoteId || !['working', 'input_required', 'completed', 'failed', 'cancelled'].includes(result.status)) {
       throw new Error('Invalid task snapshot');
     }

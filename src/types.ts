@@ -27,7 +27,8 @@ export interface TaskAdapter {
   submit(input: unknown): Promise<{ remoteId: string; snapshot: Snapshot | null }>;
   respond?(remoteId: string, key: string, response: Record<string, unknown>): Promise<void>;
   cancel?(remoteId: string): Promise<void>;
-  query(remoteId: string): Promise<Snapshot>;
+  /** Implementations must honor the signal to enforce wait deadlines. */
+  query(remoteId: string, signal?: AbortSignal): Promise<Snapshot>;
 }
 export function isTerminal(snapshot: Snapshot | null): boolean {
   return snapshot !== null && ['completed', 'failed', 'cancelled'].includes(snapshot.status);
