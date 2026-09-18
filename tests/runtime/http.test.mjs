@@ -137,3 +137,13 @@ test('CLI explicitly answers once across processes and continues observation', a
   assert.equal((await run('recover'))[0].snapshot.status, 'completed');
   assert.equal(calls.filter(c => c.method === 'tasks/update').length, 1);
 });
+
+test('HTTP query respects an external deadline while the server stalls', async t => {
+  const server = createServer((_req, _res) => {});
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
+  const adapter = new HttpTaskAdapter(`http://127.0.0.1:${server.address().port}/mcp`);
+  const start = performance.now();
+  await assert.rejects(adapter.query('task', AbortSignal.timeout(30)), { name: 'TimeoutError' });
+  assert.ok(performance.now() - start < 2000, 'External deadline must override the 30-second request timeout');
+});

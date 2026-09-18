@@ -318,3 +318,39 @@ test('input reservation validates keys and JSON and retains interrupted attempts
   try { assert.equal(store.get(task.id).inputResponses[0].outcome, 'pending'); assert.throws(() => store.reserveInput(task.id, 'key', {}), /already attempted/); }
   finally { store.close(); }
 });
+
+test('wait retries observation failures and returns a durable terminal result without submission', async t => {
+  const store = new TaskStore(database(t)); t.after(() => store.close());
+  const task = store.create('wait', {}); store.accept(task.id, 'remote'); let queries = 0;
+  const coordinator = new TaskCoordinator(store, { name: 'wait', query: async () => {
+    if (++queries === 1) throw new Error('offline');
+    return queries === 2 ? { status: 'working' } : { status: 'completed', result: 'done' };
+  } });
+  const result = await coordinator.wait(task.id, 1, 1000);
+  assert.equal(result.reason, 'terminal'); assert.equal(result.task.snapshot.result, 'done');
+  assert.equal(result.task.observationError, null); assert.equal(queries, 3);
+  await coordinator.wait(task.id, 1, 1000); assert.equal(queries, 3);
+});
+
+test('wait stops for outstanding input, unknown submissions and deadlines', async t => {
+  const store = new TaskStore(database(t)); t.after(() => store.close());
+  const task = store.create('wait', {}); let queries = 0;
+  const coordinator = new TaskCoordinator(store, { name: 'wait', query: async () => { queries++; return { status: 'input_required', inputRequests: {} }; } });
+  assert.equal((await coordinator.wait(task.id, 1, 100)).reason, 'unknown_submission'); assert.equal(queries, 0);
+  store.accept(task.id, 'remote');
+  assert.equal((await coordinator.wait(task.id, 1, 100)).reason, 'input_required');
+  const polling = new TaskCoordinator(store, { name: 'wait', query: async () => ({ status: 'working' }) });
+  assert.equal((await polling.wait(task.id, 1000, 15)).reason, 'timeout');
+  for (const n of [0, -1, NaN, 1.5, 86400001]) await assert.rejects(polling.wait(task.id, n, 100));
+});
+
+test('CLI wait completes a persisted demo and reports timeout with exit code 2', t => {
+  const db = database(t);
+  const task = cli(db, 'submit', '--text', 'ready', '--delay-ms', '100');
+  assert.equal(cli(db, 'wait', task.id, '--interval-ms', '10', '--timeout-ms', '2000').reason, 'terminal');
+  const slow = cli(db, 'submit', '--text', 'later', '--delay-ms', '10000');
+  const child = spawnSync(process.execPath, ['dist/cli.js', 'wait', slow.id, '--db', db, '--interval-ms', '1000', '--timeout-ms', '20'], { encoding: 'utf8', timeout: 5000 });
+  assert.equal(child.status, 2, child.stderr);
+  assert.equal(JSON.parse(child.stdout).reason, 'timeout');
+  assert.equal(cli(db, 'list').length, 2);
+});
