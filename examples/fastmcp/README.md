@@ -39,10 +39,10 @@ With the same server running:
 node dist/cli.js submit --server http://127.0.0.1:8000/mcp --tool choose_label
 node dist/cli.js status <task-id> --server http://127.0.0.1:8000/mcp
 node dist/cli.js list
-node dist/cli.js respond <task-id> --server http://127.0.0.1:8000/mcp --request-key '<key-from-snapshot.inputRequests>' --response '{"action":"accept","content":{"label":"reviewed batch"}}'
+node dist/cli.js respond <task-id> --server http://127.0.0.1:8000/mcp --request-key='<key-from-snapshot.inputRequests>' --response '{"action":"accept","content":{"label":"reviewed batch"}}'
 node dist/cli.js status <task-id> --server http://127.0.0.1:8000/mcp
 ```
 
-Poll until input_required before answering. Use the surfaced request key exactly: FastMCP assigns keys per task execution leg. Each command runs in a fresh client process, and `list` reads the saved request without contacting the server. Poll after the acknowledgment to retrieve the chosen label.
+Poll until input_required before answering. Use the equals form so keys beginning with a dash are accepted. Use the surfaced request key exactly: FastMCP assigns keys per task execution leg. Each command runs in a fresh client process, and `list` reads the saved request without contacting the server. Poll after the acknowledgment to retrieve the chosen label.
 
 The tool returns `InputRequiredResult` to park the task, then reads a typed `ElicitResult` from `ctx.input_responses` when FastMCP re-enters it. It validates the accepted label before returning it. The integration verifies this full cycle; no extra elicitation capability was required for this pinned background-task path. This does not establish standalone elicitation or other input-method support.

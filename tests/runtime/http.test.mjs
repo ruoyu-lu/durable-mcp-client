@@ -121,19 +121,19 @@ test('CLI explicitly answers once across processes and continues observation', a
   const { endpoint, calls } = await fixture(t, body => {
     if (body.method === 'tools/call') return { resultType: 'task', taskId: 'interactive' };
     if (body.method === 'tasks/update') {
-      assert.deepEqual(body.params.inputResponses, { choice: response });
+      assert.deepEqual(body.params.inputResponses, { '-choice': response });
       answered = true; return { resultType: 'complete' };
     }
     return answered ? { resultType: 'complete', taskId: 'interactive', status: 'completed', result: { content: [] } }
-      : { resultType: 'complete', taskId: 'interactive', status: 'input_required', inputRequests: { choice: { method: 'elicitation/create', params: { message: 'Choose' } } } };
+      : { resultType: 'complete', taskId: 'interactive', status: 'input_required', inputRequests: { '-choice': { method: 'elicitation/create', params: { message: 'Choose' } } } };
   });
   const dir = await mkdtemp(join(tmpdir(), 'mcp-answer-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const run = async (...args) => JSON.parse((await exec(process.execPath, ['dist/cli.js', ...args, '--db', join(dir, 'tasks.sqlite'), '--server', endpoint])).stdout);
   const task = await run('submit', '--tool', 'interactive'); await run('status', task.id);
-  const ack = await run('respond', task.id, '--request-key', 'choice', '--response', JSON.stringify(response));
+  const ack = await run('respond', task.id, '--request-key=-choice', '--response', JSON.stringify(response));
   assert.equal(ack.inputResponses[0].outcome, 'acknowledged');
   assert.equal(ack.snapshot.status, 'input_required');
-  await assert.rejects(run('respond', task.id, '--request-key', 'choice', '--response', JSON.stringify(response)), /already attempted/);
+  await assert.rejects(run('respond', task.id, '--request-key=-choice', '--response', JSON.stringify(response)), /already attempted/);
   assert.equal((await run('recover'))[0].snapshot.status, 'completed');
   assert.equal(calls.filter(c => c.method === 'tasks/update').length, 1);
 });
@@ -146,4 +146,14 @@ test('HTTP query respects an external deadline while the server stalls', async t
   const start = performance.now();
   await assert.rejects(adapter.query('task', AbortSignal.timeout(30)), { name: 'TimeoutError' });
   assert.ok(performance.now() - start < 2000, 'External deadline must override the 30-second request timeout');
+});
+
+test('HTTP adapter keeps valid polling hints and ignores malformed advisory values', async t => {
+  let hint;
+  const { endpoint } = await fixture(t, () => ({ resultType: 'complete', taskId: 'task', status: 'working', pollIntervalMs: hint }));
+  const adapter = new HttpTaskAdapter(endpoint);
+  for (hint of [0, 250, Number.MAX_SAFE_INTEGER]) assert.equal((await adapter.query('task')).pollIntervalMs, hint);
+  for (hint of [undefined, null, -1, 1.5, '1000', Number.MAX_SAFE_INTEGER + 1]) {
+    assert.deepEqual(await adapter.query('task'), { status: 'working' });
+  }
 });

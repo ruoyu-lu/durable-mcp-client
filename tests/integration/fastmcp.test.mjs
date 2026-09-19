@@ -80,7 +80,7 @@ test('FastMCP background hashes survive CLI restart and match independent digest
   assert.equal(request.params.requestedSchema.properties.label.type, 'string');
   assert.deepEqual((await run('list')).find(r => r.id === interactive.id).snapshot, waiting.snapshot);
   const response = { action: 'accept', content: { label: 'reviewed batch' } };
-  const reply = await run('respond', interactive.id, '--request-key', key, '--response', JSON.stringify(response));
+  const reply = await run('respond', interactive.id, `--request-key=${key}`, '--response', JSON.stringify(response));
   assert.equal(reply.inputResponses[0].outcome, 'acknowledged');
   let finished;
   const finishDeadline = Date.now() + 10000;
