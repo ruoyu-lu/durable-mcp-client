@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { validPollInterval } from '../types.js';
 import type { Snapshot, TaskAdapter } from '../types.js';
 
 const version = '2026-07-28';
@@ -90,7 +91,7 @@ export class HttpTaskAdapter implements TaskAdapter {
         if ('params' in entry) object(entry.params);
       }
     }
-    return { ...(inputRequests ? { inputRequests } : {}), status: result.status, ...(result.status === 'completed' ? { result: result.result } : {}),
+    return { ...(validPollInterval(result.pollIntervalMs) ? { pollIntervalMs: result.pollIntervalMs } : {}), ...(inputRequests ? { inputRequests } : {}), status: result.status, ...(result.status === 'completed' ? { result: result.result } : {}),
       ...(result.status === 'failed' ? { error: JSON.stringify(result.error) } : {}) };
   }
 }

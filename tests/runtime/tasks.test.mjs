@@ -354,3 +354,28 @@ test('CLI wait completes a persisted demo and reports timeout with exit code 2',
   assert.equal(JSON.parse(child.stdout).reason, 'timeout');
   assert.equal(cli(db, 'list').length, 2);
 });
+
+test('wait honors changing server hints and retains them after reopening SQLite', async t => {
+  const db = database(t); let store = new TaskStore(db);
+  const task = store.create('hint', {}); store.accept(task.id, 'remote');
+  let queries = 0; const times = [];
+  const adapter = { name: 'hint', query: async () => {
+    times.push(performance.now()); queries++;
+    return queries < 3 ? { status: 'working', pollIntervalMs: queries === 1 ? 60 : 30 } : { status: 'completed', result: 'done', pollIntervalMs: 30 };
+  } };
+  const result = await new TaskCoordinator(store, adapter).wait(task.id, 1, 2000);
+  assert.equal(result.reason, 'terminal');
+  assert.ok(times[1] - times[0] >= 50); assert.ok(times[2] - times[1] >= 20);
+  store.close(); store = new TaskStore(db);
+  try { assert.equal(store.get(task.id).snapshot.pollIntervalMs, 30); }
+  finally { store.close(); }
+});
+
+test('large polling hints cannot overflow timers or extend the wait deadline', async t => {
+  const store = new TaskStore(database(t)); t.after(() => store.close());
+  const task = store.create('hint', {}); store.accept(task.id, 'remote'); let queries = 0;
+  const coordinator = new TaskCoordinator(store, { name: 'hint', query: async () => { queries++; return { status: 'working', pollIntervalMs: Number.MAX_SAFE_INTEGER }; } });
+  const start = performance.now();
+  assert.equal((await coordinator.wait(task.id, 1, 30)).reason, 'timeout');
+  assert.equal(queries, 1); assert.ok(performance.now() - start < 1000);
+});

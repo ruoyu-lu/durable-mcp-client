@@ -147,3 +147,13 @@ test('HTTP query respects an external deadline while the server stalls', async t
   await assert.rejects(adapter.query('task', AbortSignal.timeout(30)), { name: 'TimeoutError' });
   assert.ok(performance.now() - start < 2000, 'External deadline must override the 30-second request timeout');
 });
+
+test('HTTP adapter keeps valid polling hints and ignores malformed advisory values', async t => {
+  let hint;
+  const { endpoint } = await fixture(t, () => ({ resultType: 'complete', taskId: 'task', status: 'working', pollIntervalMs: hint }));
+  const adapter = new HttpTaskAdapter(endpoint);
+  for (hint of [0, 250, Number.MAX_SAFE_INTEGER]) assert.equal((await adapter.query('task')).pollIntervalMs, hint);
+  for (hint of [undefined, null, -1, 1.5, '1000', Number.MAX_SAFE_INTEGER + 1]) {
+    assert.deepEqual(await adapter.query('task'), { status: 'working' });
+  }
+});

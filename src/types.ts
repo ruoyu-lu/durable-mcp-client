@@ -4,6 +4,8 @@ export interface Snapshot {
   /** Plain JSON data; validated before persistence. */
   result?: unknown;
   error?: string;
+  /** Server polling hint in non-negative integer milliseconds. */
+  pollIntervalMs?: number;
   /** Outstanding server requests, retained as data rather than executed. */
   inputRequests?: Record<string, { method: string; params?: Record<string, unknown> }>;
 }
@@ -32,4 +34,9 @@ export interface TaskAdapter {
 }
 export function isTerminal(snapshot: Snapshot | null): boolean {
   return snapshot !== null && ['completed', 'failed', 'cancelled'].includes(snapshot.status);
+}
+
+/** Treat malformed advisory metadata as absent, not a failed observation. */
+export function validPollInterval(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }

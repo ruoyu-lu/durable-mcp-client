@@ -1,7 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
 import type { TaskAdapter, TaskRecord } from './types.js';
-import { isTerminal } from './types.js';
+import { isTerminal, validPollInterval } from './types.js';
 import { TaskStore } from './store.js';
 
 export class TaskCoordinator {
@@ -83,7 +83,11 @@ export class TaskCoordinator {
       if (isTerminal(task.snapshot)) return { reason: 'terminal', task };
       if (signal.aborted) return { reason: 'timeout', task };
       if (!task.observationError && task.snapshot?.status === 'input_required') return { reason: 'input_required', task };
-      try { await delay(intervalMs, undefined, { signal }); }
+      const hint = task.snapshot?.pollIntervalMs;
+      // Cap the timer below Node's overflow threshold; the overall deadline is
+      // at most one day and will interrupt any longer recommended wait.
+      const pollMs = validPollInterval(hint) ? Math.min(86400000, Math.max(intervalMs, hint)) : intervalMs;
+      try { await delay(pollMs, undefined, { signal }); }
       catch (error) { if (!signal.aborted) throw error; }
     }
   }
