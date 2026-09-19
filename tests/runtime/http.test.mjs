@@ -121,19 +121,19 @@ test('CLI explicitly answers once across processes and continues observation', a
   const { endpoint, calls } = await fixture(t, body => {
     if (body.method === 'tools/call') return { resultType: 'task', taskId: 'interactive' };
     if (body.method === 'tasks/update') {
-      assert.deepEqual(body.params.inputResponses, { choice: response });
+      assert.deepEqual(body.params.inputResponses, { '-choice': response });
       answered = true; return { resultType: 'complete' };
     }
     return answered ? { resultType: 'complete', taskId: 'interactive', status: 'completed', result: { content: [] } }
-      : { resultType: 'complete', taskId: 'interactive', status: 'input_required', inputRequests: { choice: { method: 'elicitation/create', params: { message: 'Choose' } } } };
+      : { resultType: 'complete', taskId: 'interactive', status: 'input_required', inputRequests: { '-choice': { method: 'elicitation/create', params: { message: 'Choose' } } } };
   });
   const dir = await mkdtemp(join(tmpdir(), 'mcp-answer-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const run = async (...args) => JSON.parse((await exec(process.execPath, ['dist/cli.js', ...args, '--db', join(dir, 'tasks.sqlite'), '--server', endpoint])).stdout);
   const task = await run('submit', '--tool', 'interactive'); await run('status', task.id);
-  const ack = await run('respond', task.id, '--request-key', 'choice', '--response', JSON.stringify(response));
+  const ack = await run('respond', task.id, '--request-key=-choice', '--response', JSON.stringify(response));
   assert.equal(ack.inputResponses[0].outcome, 'acknowledged');
   assert.equal(ack.snapshot.status, 'input_required');
-  await assert.rejects(run('respond', task.id, '--request-key', 'choice', '--response', JSON.stringify(response)), /already attempted/);
+  await assert.rejects(run('respond', task.id, '--request-key=-choice', '--response', JSON.stringify(response)), /already attempted/);
   assert.equal((await run('recover'))[0].snapshot.status, 'completed');
   assert.equal(calls.filter(c => c.method === 'tasks/update').length, 1);
 });
