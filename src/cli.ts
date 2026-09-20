@@ -42,16 +42,29 @@ async function main(): Promise<void> {
   if (command === 'respond' && (values['request-key'] === undefined || values.response === undefined)) throw new Error('respond requires --request-key and --response');
   const response = command === 'respond' ? JSON.parse(values.response!) : undefined;
   const store = new TaskStore(values.db);
+  const interruption = new AbortController();
+  let interruptCode: number | undefined;
+  const onInterrupt = () => { interruptCode ??= 130; interruption.abort(); };
+  const onTerminate = () => { interruptCode ??= 143; interruption.abort(); };
+  if (command === 'wait') {
+    process.on('SIGINT', onInterrupt);
+    process.on('SIGTERM', onTerminate);
+  }
   try {
     const coordinator = new TaskCoordinator(store, adapter);
     const result = command === 'submit' ? await coordinator.submit(input)
-      : command === 'wait' ? await coordinator.wait(id!, Number(values['interval-ms']), Number(values['timeout-ms']))
+      : command === 'wait' ? await coordinator.wait(id!, Number(values['interval-ms']), Number(values['timeout-ms']), interruption.signal)
       : command === 'respond' ? await coordinator.respond(id!, values['request-key']!, response)
       : command === 'cancel' ? await coordinator.cancel(id!)
       : command === 'status' ? await coordinator.refresh(id!)
       : command === 'recover' ? await coordinator.recover() : store.list();
     console.log(JSON.stringify(result, null, 2));
     if (command === 'wait' && 'reason' in result && result.reason === 'timeout') process.exitCode = 2;
-  } finally { store.close(); }
+    if (interruptCode !== undefined) process.exitCode = interruptCode;
+  } finally {
+    process.off('SIGINT', onInterrupt);
+    process.off('SIGTERM', onTerminate);
+    store.close();
+  }
 }
 main().catch(error => { console.error(String(error)); process.exitCode = 1; });

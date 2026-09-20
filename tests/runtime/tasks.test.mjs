@@ -379,3 +379,19 @@ test('large polling hints cannot overflow timers or extend the wait deadline', a
   assert.equal((await coordinator.wait(task.id, 1, 30)).reason, 'timeout');
   assert.equal(queries, 1); assert.ok(performance.now() - start < 1000);
 });
+
+test('wait interruption stops a long polling sleep and pre-aborted waits never query', async t => {
+  const store = new TaskStore(database(t)); t.after(() => store.close());
+  const task = store.create('interrupt', {}); store.accept(task.id, 'remote', { status: 'working' });
+  const controller = new AbortController(); let queries = 0;
+  const coordinator = new TaskCoordinator(store, { name: 'interrupt', query: async () => {
+    queries++;
+    setTimeout(() => controller.abort(), 10);
+    return { status: 'working', pollIntervalMs: 60000 };
+  } });
+  const result = await coordinator.wait(task.id, 60000, 1000, controller.signal);
+  assert.equal(result.reason, 'interrupted'); assert.equal(queries, 1);
+  assert.equal(result.task.observationError, null);
+  assert.equal((await coordinator.wait(task.id, 1, 1000, controller.signal)).reason, 'interrupted');
+  assert.equal(queries, 1);
+});
