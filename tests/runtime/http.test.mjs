@@ -157,3 +157,37 @@ test('HTTP adapter keeps valid polling hints and ignores malformed advisory valu
     assert.deepEqual(await adapter.query('task'), { status: 'working' });
   }
 });
+
+for (const [signal, expectedCode] of [['SIGINT', 130], ['SIGTERM', 143]]) {
+  test(`CLI wait handles ${signal} during stalled HTTP without cancelling the task`, { timeout: 10000 }, async t => {
+    const { spawn } = await import('node:child_process');
+    const { TaskStore } = await import('../../dist/store.js');
+    let child;
+    const methods = [];
+    const server = createServer(async req => {
+      let body = ''; for await (const chunk of req) body += chunk;
+      methods.push(JSON.parse(body).method);
+      child.kill(signal);
+      // Leave the request open to verify interruption aborts the HTTP query.
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
+    const endpoint = `http://127.0.0.1:${server.address().port}/mcp`;
+    const dir = await mkdtemp(join(tmpdir(), 'mcp-signal-')); t.after(() => rm(dir, { recursive: true, force: true }));
+    const db = join(dir, 'tasks.sqlite');
+    let store = new TaskStore(db);
+    const task = store.create(new HttpTaskAdapter(endpoint).name, {});
+    const saved = store.accept(task.id, 'remote', { status: 'working' }); store.close();
+    child = spawn(process.execPath, ['dist/cli.js', 'wait', task.id, '--server', endpoint, '--db', db]);
+    t.after(() => { if (child.exitCode === null) child.kill('SIGKILL'); });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', data => { stdout += data; }); child.stderr.on('data', data => { stderr += data; });
+    const code = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
+    assert.equal(code, expectedCode, stderr);
+    const result = JSON.parse(stdout);
+    assert.equal(result.reason, 'interrupted'); assert.deepEqual(result.task, saved);
+    assert.deepEqual(methods, ['tasks/get']);
+    store = new TaskStore(db);
+    try { assert.deepEqual(store.get(task.id), saved); } finally { store.close(); }
+  });
+}

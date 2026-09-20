@@ -33,6 +33,8 @@ export class TaskCoordinator {
     try {
       return this.store.observe(id, await this.adapter.query(record.remoteId, signal));
     } catch (error) {
+      // Aborting observation is a local lifecycle event, not a new remote error.
+      if (signal?.aborted) return this.store.get(id);
       // A network/adapter error is not a remote task failure.
       return this.store.recordError(id, String(error));
     }
@@ -68,20 +70,21 @@ export class TaskCoordinator {
     }
     return this.store.finishInput(id, key, null);
   }
-  async wait(id: string, intervalMs = 1000, timeoutMs = 60000): Promise<{ reason: 'terminal' | 'input_required' | 'unknown_submission' | 'timeout'; task: TaskRecord }> {
+  async wait(id: string, intervalMs = 1000, timeoutMs = 60000, interruption?: AbortSignal): Promise<{ reason: 'terminal' | 'input_required' | 'unknown_submission' | 'timeout' | 'interrupted'; task: TaskRecord }> {
     for (const [name, value] of [['interval', intervalMs], ['timeout', timeoutMs]] as const) {
       if (!Number.isSafeInteger(value) || value < 1 || value > 86400000) throw new Error(`${name} must be an integer from 1 to 86400000 ms`);
     }
-    const signal = AbortSignal.timeout(timeoutMs);
+    const deadline = AbortSignal.timeout(timeoutMs);
+    const signal = interruption ? AbortSignal.any([deadline, interruption]) : deadline;
     let task = this.store.get(id);
     if (task.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${task.adapter}`);
     while (true) {
       if (isTerminal(task.snapshot)) return { reason: 'terminal', task };
       if (task.submission === 'unknown') return { reason: 'unknown_submission', task };
-      if (signal.aborted) return { reason: 'timeout', task };
+      if (signal.aborted) return { reason: interruption?.aborted && signal.reason === interruption.reason ? 'interrupted' : 'timeout', task };
       task = await this.refresh(id, signal);
       if (isTerminal(task.snapshot)) return { reason: 'terminal', task };
-      if (signal.aborted) return { reason: 'timeout', task };
+      if (signal.aborted) return { reason: interruption?.aborted && signal.reason === interruption.reason ? 'interrupted' : 'timeout', task };
       if (!task.observationError && task.snapshot?.status === 'input_required') return { reason: 'input_required', task };
       const hint = task.snapshot?.pollIntervalMs;
       // Cap the timer below Node's overflow threshold; the overall deadline is
