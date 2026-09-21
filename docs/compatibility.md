@@ -62,7 +62,7 @@ gh api 'repos/modelcontextprotocol/ext-tasks/contents/specification/2026-07-28/t
 python3 -c 'import base64, hashlib, pathlib; print(hashlib.sha256(base64.b64decode(pathlib.Path("/tmp/mcp-tasks-source.b64").read_bytes())).hexdigest())'
 ```
 
-Compare the output with `sha256` in `docs/protocol-baseline.json`. This verifies source bytes, not protocol conformance. No application build or runtime tests are applicable to this documentation-only change.
+Compare the output with `sha256` in `docs/protocol-baseline.json`. This verifies source bytes, not protocol conformance. This source check alone does not validate runtime behavior.
 
 ## Published client probe (2026-09-08, Australia/Melbourne)
 
@@ -76,7 +76,7 @@ Observed with Node 24.1.0 and `@modelcontextprotocol/client@2.0.0`:
 | Receive flat `resultType: task` from tools/call | BLOCKED: `UNSUPPORTED_RESULT_TYPE` |
 | Call tasks/get on the modern connection | BLOCKED: `METHOD_NOT_SUPPORTED_BY_PROTOCOL_VERSION`, before HTTP dispatch |
 
-The tests assert these observed limitations to detect changes in the pinned baseline. A green test run does **not** mean Tasks interoperability works. No task routing headers or detailed task results were verified because the request never reached the transport. Do not advertise the Tasks capability in production until a working extension/adapter is established; the probe deliberately advertises it to test the response path.
+The tests assert these observed limitations to detect changes in the pinned baseline. A green test run does **not** mean Tasks interoperability works. These SDK probes cannot verify task routing because SDK dispatch is rejected. The separate runtime HTTP adapter does advertise Tasks and is covered by socket and real FastMCP tests; this is not an SDK capability claim.
 
 The SDK's declared client options document a legacy default and explicit `versionNegotiation: { mode: { pin: '2026-07-28' } }`. Its discovery result schema requires `supportedVersions`, not a single `protocolVersion` field. Package metadata and installed declarations/behavior, rather than the monorepo root version, determine this finding.
 

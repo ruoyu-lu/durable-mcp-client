@@ -1,7 +1,7 @@
 # ADR 0001: Reuse the runtime; focus on client recovery and host delivery
 
 - Date: 2026-09-08
-- Status: scope accepted; technology combination subject to M0 verification
+- Status: partially superseded by [ADR 0002](0002-cli-alpha-and-release-gates.md); original proposal retained as history
 
 ## Context
 

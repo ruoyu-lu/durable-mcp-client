@@ -1,52 +1,26 @@
 # Product scope
 
-## Users and problem
+## Current product
 
-Developers use agents to launch indexing, batch processing, tests, and other long-running operations. They need to reconnect to the original task after the client exits, retrieve its result, and continue the originating session.
+A standalone TypeScript CLI that tracks long-running MCP tasks in local SQLite and resumes observation after client exit. Users run remote work on an independent server, keep the handle, inspect results and pending input, and explicitly request cancellation or send responses.
 
-Client and remote task lifecycles differ. A client timeout does not establish task failure. Requesting cancellation does not establish that work stopped. Retrieving a result does not establish that the host session received it.
+The supported baseline is one local user, the pinned modern JSON HTTP contract and the FastMCP example. CLI commands are submit, list, status, recover, cancel, respond and wait. Authentication, agent-session delivery and broad server compatibility are not implemented.
 
-## Target workflow
+## Alpha workflow
 
-1. Start a batch document-processing task from the CLI or selected host.
-2. Persist submission intent, then associate the returned task handle with the caller and session.
-3. Display task state while allowing the client to exit.
-4. On restart, reauthenticate and resume observing recorded tasks.
-5. Present pending input requests and submit responses.
-6. Save completed results before delivering them to the CLI or original session.
-7. Track delivery acknowledgements and deduplicate where the host supports it.
+1. Install the CLI artifact (R2; currently build from source).
+2. Submit a task and persist intent before network effects, then its accepted handle.
+3. Exit and restart the client with the same database and endpoint.
+4. Query or wait; distinguish remote status from observation failure.
+5. Inspect form input and send an explicit response, or request cancellation.
+6. Read the saved result. Verify server-restart result retrieval with Redis separately (R1).
 
-A separate cancellation scenario demonstrates both successful cancellation and completion winning the race.
+## Guarantees and limits
 
-## MVP scope
+Accepted handles survive client restarts. Unknown submission outcomes are never automatically retried. Cancellation acknowledgments do not prove cancellation. Input response attempts are durably guarded against duplicates; explicit rejection reconciliation is unfinished. The database stores payloads in plaintext. The current endpoint identity is a URL hash, not an authenticated-principal identity.
 
-- One user, one local coordinator, one example MCP server.
-- One verified HTTP transport and protocol/SDK combination.
-- A deterministic batch document-processing example with inspectable output, independent of paid model APIs.
-- Persistent records, restart recovery, input requests, cancellation tracking, and result delivery.
-- Reproducible fault tests with pinned dependencies.
-- A DeepSeek Harness adapter if the integration probe establishes a viable path.
+The memory-backed example loses remote tasks when its server exits. No active-job checkpointing, Redis restart durability, outbox, exactly-once delivery, or host continuation is claimed.
 
-## Non-goals
+## Acceptance and non-goals
 
-- A new distributed scheduler, generic workflow engine, or agent framework.
-- Universal support for every MCP revision, transport, server, or host.
-- Exactly-once external side effects enforced by the client.
-- Automatic instruction-level continuation of arbitrary Python functions.
-- Multi-tenant hosting, billing, or cross-device synchronization.
-- Performance or ecosystem-first claims without evidence.
-
-## Explicit boundaries
-
-Unknown submission outcomes remain unknown unless a verified reconciliation mechanism resolves them. Non-idempotent requests must not be automatically resubmitted. Missing or expired remote tasks are distinguished from failed business operations. Delivery guarantees depend on host acknowledgement and deduplication support.
-
-The example server runs independently of the client. A stdio subprocess that dies with the CLI cannot demonstrate remote task survival.
-
-## Acceptance criteria
-
-- Restarting the client reconnects to tasks whose handles were committed locally without resubmitting them.
-- Both synchronous results and asynchronous task handles are handled.
-- Completion, failure, cancellation, input required, unavailable tasks, and network errors are distinguishable.
-- Crashes between result persistence and delivery are recoverable under the documented host contract.
-- Required fault cases have reproducible evidence or explicit unsupported outcomes.
-- A new contributor can reproduce the workflow and inspect real output rather than only a sleep demo.
+The alpha must pass R1 failure tests and the R2 clean-install workflow. Each supported behavior has a test and each unsupported fault has a visible boundary. Reuse server scheduling; do not build a workflow engine, hosted service, multi-tenant system or another agent framework. Website deployment is not required. A host adapter is considered only after the standalone product is usable and a concrete integration contract is verified.

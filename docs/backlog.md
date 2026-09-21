@@ -1,37 +1,27 @@
 # Backlog
 
-Updated: 2026-09-18.
+Updated 2026-09-21. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
 
-## Completed
+## Current: R1 — Reliable recovery
 
-- [x] Establish repository structure and documentation navigation.
-- [x] Define scope, non-goals, failure semantics, and acceptance criteria.
-- [x] Document architecture, milestones, fault matrix, references, and initial decision.
-- [x] Adopt the name durable-mcp-client and English-only project documentation.
-- [x] Add MIT license, contribution guidance, and repository hygiene files.
+- [ ] [#15 State validation and late observation errors](https://github.com/ruoyu-lu/durable-mcp-client/issues/15) — next implementation. Reproduced in the audit.
+- [ ] [#16 Rejected versus uncertain input delivery](https://github.com/ruoyu-lu/durable-mcp-client/issues/16) — safe explicit correction and request reconciliation.
+- [ ] [#17 Redis-backed server restart](https://github.com/ruoyu-lu/durable-mcp-client/issues/17) — retrieve uncached remote results using the original handle.
 
-## M0: next
+## Next: R2 — Installable CLI alpha
 
-- [x] T001 Pin Tasks revision and record capabilities, methods, result, input, and cancellation semantics. See [compatibility baseline](compatibility.md) (issue #1).
-- [x] T002 Establish a compatible JSON HTTP combination: FastMCP/tasks 4.0.3, pydocket 0.25.2, Python MCP 2.2.0 and the client HTTP shim. SDK 2.0.0 gaps remain isolated; see [compatibility](compatibility.md).
-- [ ] T003 Audit Harness MCP providers, jobs, session events, and delivery; compare related durable clients.
-- [ ] T004 Build the minimal external-plugin probe for persistent association and idempotent delivery.
-- [ ] T005 Exercise direct results, asynchronous observation, input, and cancellation in isolation.
-- [ ] T006 Publish the compatibility matrix, decide host/CLI route, and update the ADR.
+- [ ] [#18 Package and clean installation](https://github.com/ruoyu-lu/durable-mcp-client/issues/18) — bin, dist, intended files, dependency split, artifact smoke test and release readiness.
 
-T001/T002 establish the protocol combination. T003/T004 establish host feasibility. T005 depends on version selection. T006 records evidence. An interface name alone does not count as a passing test.
+## Delivered baseline
 
-## Following milestones
+- [x] Protocol source pin and compatibility probes (original T001/T002; issues #1/#3).
+- [x] SQLite transactional records and coordinator (T101; no global singleton claim).
+- [x] Deterministic FastMCP hashing example with verified digests (T102).
+- [x] CLI submit/list/status/recover/cancel/respond/wait and signal handling (T103).
+- [x] Direct/task results, background form input and cancellation exercised (T005 within the pinned scope).
 
-- [x] T101 Core adapter interfaces and transactional SQLite task records. A coordinator-wide single-instance lock remains follow-up work.
-- [x] T102 FastMCP background batch hashing example with independently verified digests across client process restarts.
-- [x] T103 Initial CLI submit/list/status/recover flow with demo adapter and JSON output. Live MCP JSON HTTP is implemented; durable cancellation attempts and the cancel command are implemented; explicit input responses and real FastMCP form elicitation are verified.
-- [ ] T201 Recovery scan, unknown submission, backoff, authentication, expiry.
-- [ ] T202 Outbox and idempotent delivery adapter.
-- [ ] T203 Automated fault matrix.
-- [ ] T301 Host task/input presentation, delivery, and continuation policy.
-- [ ] T401 Reproducible setup, demo, guarantees, limitations, and dependency review.
+## Deferred by explicit scope
 
-## Progress policy
+Original T003/T004/T301 host feasibility and presentation move to R4. T202 outbox requires a host delivery contract. T201/T203 are split between R1 recovery evidence and R3 auth/expiry/interop. T401 delivery becomes R2. Original T006 is satisfied for the CLI route by ADR 0002; it does not certify a host path.
 
-Update tasks and affected design documents with implementation changes. Completed items require files or execution evidence. Record failed assumptions and alternatives instead of silently expanding scope.
+Tests/CI and documentation accompany behavior changes. Create issues for independent work, not to justify every PR. Mark gates complete only from executable evidence. Do not reopen completed initialization work from an old scheduled prompt.
