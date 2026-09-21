@@ -2,7 +2,7 @@
 
 ## Pinned source
 
-The initial adapter target is the **2026-07-28** Tasks extension, pinned to [ext-tasks commit 9263312d11a682ac83f83fe84794d4627efd22f5](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md). The machine-readable [source pin](protocol-baseline.json) includes the SHA-256 of the decoded source file. This is a source-level baseline, not a claim that a working SDK/server combination has been established.
+The initial adapter target is the **2026-07-28** Tasks extension, pinned to [ext-tasks commit 9263312d11a682ac83f83fe84794d4627efd22f5](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md). The machine-readable [source pin](protocol-baseline.json) includes the SHA-256 of the decoded source file. This pin identifies source evidence only. The compatibility status below separately records the tested FastMCP/HTTP-shim path and the SDK limitations.
 
 Reviewed on 2026-09-08 for [issue #1](https://github.com/ruoyu-lu/durable-mcp-client/issues/1). All section links below target the immutable source. Later upstream changes require an explicit compatibility review.
 
@@ -17,7 +17,7 @@ Reviewed on 2026-09-08 for [issue #1](https://github.com/ruoyu-lu/durable-mcp-cl
 | [Polling](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#task-polling) | `tasks/get` returns detailed state with `resultType: "complete"`. Clients SHOULD respect the current suggested interval and persist IDs. | Result retrieval is in `tasks/get`, not a separate `tasks/result` call. |
 | [Execution errors](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#task-execution-errors) | JSON-RPC execution errors use `failed` plus `error`. Tool-level `isError: true` uses `completed` plus `result`. | Preserve protocol completion separately from business success. |
 | [Input](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#task-update-requests) | `inputRequests` keys are unique for the task lifetime; answers go in `tasks/update` with `inputResponses`. Successful acknowledgement is eventually consistent. | Persist presentation/answer state, deduplicate keys, and keep observing after acknowledgement. Do not retry the original tool to answer a task input request. |
-| [Partial/stale input](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#task-update-requests) | Server MAY accept partial responses and SHOULD ignore keys no longer outstanding. | Do not assume every server implements identical stale-answer behavior; verify in T005. |
+| [Partial/stale input](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#task-update-requests) | Server MAY accept partial responses and SHOULD ignore keys no longer outstanding. | Do not assume identical stale-answer behavior; rejection and reconciliation evidence is tracked in R1 issue #16. |
 | [Cancellation](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#task-cancellation) | Use `tasks/cancel`, never `notifications/cancelled`. The acknowledgement has `resultType: "complete"` and does not guarantee work stops. | Record intent independently. Completion can win the race. |
 | [HTTP routing](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#streamable-http-routing-headers) | For get/update/cancel, `Mcp-Name` MUST equal `params.taskId`; `Mcp-Method` follows the method name. | Verify SDK-generated headers on actual HTTP requests, not only decoded JSON. |
 | [Missing task](https://github.com/modelcontextprotocol/ext-tasks/blob/9263312d11a682ac83f83fe84794d4627efd22f5/specification/2026-07-28/tasks.md#protocol-errors) | Invalid/nonexistent ID uses `-32602`: MUST for get, SHOULD for update/cancel. | Report task unavailable; do not infer business failure or nonexecution from absence. |
@@ -30,12 +30,12 @@ Reviewed on 2026-09-08 for [issue #1](https://github.com/ruoyu-lu/durable-mcp-cl
 - Continue observing after requesting cancellation so the user can see the actual outcome. The specification permits deleting local state immediately after sending cancellation; our stronger observation policy is deliberate and does not make cancellation completion mandatory.
 - Do not retry an uncertain non-idempotent submission. The pinned extension offers no `tasks/list` or standard submission idempotency key. A server-specific reconciliation contract may be added only after verification.
 - Keep remote task state separate from local reachability, business success and session delivery state.
-- Persist results and delivery intent together, and require a verified host contract before claiming deduplicated delivery.
+- For future host delivery, persist results and delivery intent together only after establishing a verified host contract. The current CLI has no delivery outbox.
 - Preserve input trust and user-approval boundaries during restart recovery.
 
 ## Source inconsistencies requiring implementation checks
 
-The Task Creation prose refers to an embedded `task` and `task.taskId`, while its type (`Result & Task`) and JSON example are flat. The adapter target follows the flat declared shape, but T002/T005 must check actual SDK types and wire output before implementation is accepted.
+The Task Creation prose refers to an embedded `task` and `task.taskId`, while its type (`Result & Task`) and JSON example are flat. The adapter follows the flat declared shape, now verified through the real FastMCP integration. The pinned SDK rejects task results, as recorded below; this does not block the separate HTTP shim.
 
 Notification type text uses the base Task while later prose requires a complete DetailedTask. Notifications are outside the initial polling-only scope; revisit this before implementing them.
 
@@ -49,7 +49,7 @@ Examples are illustrative and sometimes omit capability metadata or use inconsis
 | TypeScript SDK | `@modelcontextprotocol/client@2.0.0`, pinned in package-lock.json; fetch-seam tests below | Modern Tasks blocked in the public client API |
 | FastMCP/tasks/Docket | FastMCP 4.0.3, fastmcp-tasks 4.0.3, pydocket 0.25.2, Python MCP 2.2.0; real background hashing example | JSON HTTP submission and client-restart recovery verified; Redis persistence untested |
 | HTTP wire behavior | Loopback fixture tests and real FastMCP integration through separate CLI processes | JSON HTTP task submission, working state and completed result verified; cancellation acknowledgment and confirmed state verified; background form input verified through choose_label; other input methods pending |
-| Harness | No source audit or plugin probe completed | T003/T004 pending |
+| Harness | No source audit or plugin probe completed | Deferred to optional R4; not a CLI alpha gate |
 
 Do not interpret these pending rows as successful interoperability.
 

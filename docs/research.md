@@ -1,6 +1,6 @@
 # Research and evidence boundaries
 
-Reviewed: 2026-09-08. Findings below come from first-party online documentation, not installed-version testing or a completed source audit. Pin versions and commits before implementation.
+Initial upstream research: 2026-09-08. Status reconciled with local code and tests on 2026-09-22. The reference table records what documentation established at the time; installed-version evidence is recorded in [compatibility](compatibility.md) and [validation](validation.md). The current [roadmap](roadmap.md) supersedes the original M0 research sequence.
 
 ## References
 
@@ -18,24 +18,20 @@ Reviewed: 2026-09-08. Findings below come from first-party online documentation,
 
 The Tasks overview describes capability advertisement and server-directed task responses. Some FastMCP wording refers to per-request opt-in and protocol terminology from different stages. Do not combine snippets into an invented protocol.
 
-M0 must use a pinned specification, SDK types, and actual wire exchanges to determine capability placement, methods, result shapes, input, polling, TTL, and cancellation. Keep legacy and modern Tasks separate.
+The CLI now uses the pinned modern contract and a tested JSON HTTP shim. SDK probes and live FastMCP exchanges establish the supported path; the original wording differences are not blockers for that implementation. Keep legacy and modern Tasks separate. Revisit upstream assumptions when a dependency changes or a concrete interoperability requirement arises.
 
-## Open questions
+## Research status
 
-- Q01: Which Python server / TypeScript SDK versions interoperate?
-- Q02: How much MCP Tasks support already exists in Harness providers, response parsing, and tests?
-- Q03: Can an external plugin access handles, or must a provider be replaced?
-- Q04: Do jobs survive process restart and retain remote task associations?
-- Q05: Can the host append/query session events idempotently by delivery ID?
-- Q06: How can a restarted host register recovered tasks and request continuation?
-- Q07: What submission deduplication or discovery exists, and what does it guarantee?
-- Q08: What actually happens on cancellation, worker death, TTL cleanup, and Redis restart?
-
-The [compatibility baseline](compatibility.md) now pins the Tasks source and records protocol requirements. Runtime and host answers remain pending and must include source locations and reproducible evidence.
+| Question | Evidence and next gate |
+| --- | --- |
+| Q01: Server / SDK interoperability | FastMCP 4.0.3 works through the HTTP shim; the pinned TypeScript SDK rejects Tasks. See the compatibility tests and real-server integration. |
+| Q02–Q06: Host providers, session recovery and delivery | Unverified and deferred to the bounded R4 host probe. They do not block R1/R2. |
+| Q07: Submission deduplication / discovery | The pinned contract provides no standard submission idempotency key or tasks/list. Unknown submissions remain unreplayed; server-specific reconciliation needs separate evidence. |
+| Q08: Cancellation and server durability | Live cancellation is tested. Redis-backed completed-result retrieval after server restart is R1 issue #17. Active-worker recovery, TTL cleanup and Redis restart remain unverified. |
 
 ## Related implementations
 
-- [temporal-community/durable-async-mcp](https://github.com/temporal-community/durable-async-mcp): repository search results describe Temporal-based durable client lifecycle tracking. Audit this approach in M0 before assuming a client-side gap.
+- [temporal-community/durable-async-mcp](https://github.com/temporal-community/durable-async-mcp): repository search results describe Temporal-based durable client lifecycle tracking. Revisit the implementation before making comparative claims or selecting a host integration; this is not an unfinished CLI initialization gate.
 - [AndresSaa/mcp-durable-tasks](https://github.com/AndresSaa/mcp-durable-tasks): repository search results describe a server-side durable task state engine. Source review remains outstanding.
 
 ## Claim discipline
