@@ -2,31 +2,25 @@
 
 A client-side approach to managing long-running MCP tasks across disconnects and restarts.
 
-Durable MCP Client focuses on keeping remote tasks connected to the people and agent sessions that started them: tracking task handles, resuming observation, handling input requests, and delivering results reliably.
+The standalone CLI stores task handles and results in SQLite, resumes observation after client exit, and supports explicit input responses, cancellation and bounded waits.
 
-## Design
+## Implemented capabilities
 
-- **Persistent task records** associate remote task IDs with their server, caller identity, and originating session.
-- **Recovery coordination** separates connection failures from task failures and avoids blindly resubmitting uncertain requests.
-- **Explicit cancellation** distinguishes a cancellation request from a confirmed terminal state.
-- **Reliable result delivery** uses a local outbox and host-side deduplication where supported.
-- **Independent adapters** keep protocol handling, a standalone CLI, and agent-host integrations separate.
-
-The SQLite coordinator and standalone CLI can run against the demo adapter or a modern MCP JSON HTTP endpoint. Host integrations remain behind replaceable adapter boundaries.
+- Persistent task records scoped to an adapter and endpoint.
+- Submission uncertainty and observation failures kept separate from remote status.
+- Durable cancellation/input attempts with duplicate-response guards.
+- Wait deadlines, server polling hints and local signal interruption.
+- FastMCP examples covering batch hashing, cancellation and background form input.
 
 ## Architecture
 
 ```text
-CLI / Agent host
-       |
-Host adapter
-       |
-Task coordinator ---- SQLite task records and delivery outbox
-       |
-MCP protocol adapter
-       |
-FastMCP server ---- Redis / Valkey ---- Docket workers
+CLI -> Task coordinator -> JSON HTTP adapter -> FastMCP / Docket
+              |
+          SQLite records
 ```
+
+The current example uses an in-memory server backend. Redis server-restart evidence and an installable CLI alpha are the [next release gates](docs/roadmap.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
 
 Server scheduling and execution are delegated to existing runtimes. Here, **durable** refers to client-side task tracking and recovery; it does not promise automatic checkpointing of arbitrary server code or exactly-once external side effects.
 
@@ -40,7 +34,8 @@ Server scheduling and execution are delegated to existing runtimes. Here, **dura
 | [Validation](docs/validation.md) | Protocol checks and fault-injection scenarios |
 | [Compatibility baseline](docs/compatibility.md) | Pinned Tasks contract and outstanding implementation checks |
 | [Research](docs/research.md) | Upstream references and assumptions to verify |
-| [Decision record](docs/decisions/0001-scope-and-reuse.md) | Scope and reuse strategy |
+| [Current decision](docs/decisions/0002-cli-alpha-and-release-gates.md) | CLI alpha and release gates |
+| [Project review](docs/audits/2026-09-21.md) | Verified progress, gaps and priorities |
 | [Backlog](docs/backlog.md) | Development tasks and progress |
 
 ## Run the CLI

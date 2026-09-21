@@ -1,55 +1,25 @@
-# Validation strategy
+# Validation and coverage
 
-Pin one implementation combination first. Passing against one server does not establish universal interoperability. The cases below define the test plan; results are recorded when executed.
+Audit baseline: 2026-09-21, commit 4e8c7b7. `npm run check` and 39 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and form-input flows. Test count is not a protocol coverage percentage.
 
-## Protocol checks
-
-Map each case to a pinned specification clause. Separate normative requirements, optional capabilities, implementation behavior, and product policy.
-
-| ID | Scenario | Expected check |
+| Behavior / original case | Evidence | Limit |
 | --- | --- | --- |
-| P01 | Capability negotiation | Unsupported capabilities produce defined fallback or errors |
-| P02 | Direct result or task handle | Both response forms are recognized |
-| P03 | Observation and terminal states | Valid fields, stable terminal states, correct result/error parsing |
-| P04 | Input requests | Answers associate with the right request; stale responses are handled |
-| P05 | Cancellation | Cooperative semantics and completion races are respected |
-| P06 | Polling and retention | Pinned polling rules and unavailable/expired tasks are handled |
-| P07 | Identity isolation | Another principal cannot retrieve the original caller's task |
+| Modern metadata and SDK gaps (P01/P02) | tests/compatibility/sdk-tasks.test.mjs | Two passing probes assert unsupported SDK behavior; runtime uses a separate shim |
+| Direct/async JSON HTTP (P02/P03) | tests/runtime/http.test.mjs; FastMCP integration | One protocol and server combination |
+| Client reopen and polling errors (F03/F04) | tasks.test.mjs and separate-process HTTP CLI tests | Some crash windows are simulated, not SIGKILL injections |
+| Accepted-handle preservation (F01/F02) | invalid initial snapshot and unknown-submission tests | No recovery if acceptance response and handle were never obtained |
+| Cancellation/completion races (F08/P05) | runtime tests plus live FastMCP cancellation | Cooperative cancellation, no proof arbitrary child work stops |
+| Pending input, explicit answers, duplicates (F09/P04) | runtime/store tests plus live choose_label | Lost/rejected reply correction is #16 |
+| Deadline, hints and signal interruption (P06 partial) | runtime HTTP and child-process signal tests | Creation hints and remote expiry handling incomplete |
+| Concurrent local use (F12 partial) | per-key two-connection guards, terminal snapshot tests | No elected single poller; late-error race and invalid snapshots are #15 |
+| Remote result after server restart (F05/F13) | Not tested yet; #17 | Must avoid satisfying test from locally cached terminal output |
+| Package installation | npm pack --dry-run audit | No dist/bin in current artifact; #18 |
+| Host delivery (F06/F07) | Deferred | No outbox or host adapter |
+| Expiry/auth/isolation (F10/F11/P07) | Unsupported | No authentication, principal scope or classified unavailable state |
+| Worker crash / Redis restart (F14/F15) | Unsupported | Distinct from client restart and FastMCP restart |
 
-Call this a protocol check set until clause coverage is established. State the scope of any conformance claim.
+## Required commands
 
-## Required fault matrix
+Run `npm run check` and `npm test` for product changes. Run `FASTMCP_PYTHON=<venv-python> npm run test:fastmcp` for adapter/server changes; CI installs pinned example dependencies on Python 3.12. Runtime CI covers Node 22.13 and 24. State exactly which tests were run locally versus only in CI.
 
-| ID | Injection point | Expected behavior |
-| --- | --- | --- |
-| F01 | Drop response after server accepts submission | Unknown outcome; no blind retry without deduplication guarantees |
-| F02 | Exit after receiving ID but before local commit | Expose the gap; reconcile if supported or report uncertainty |
-| F03 | Kill CLI after handle commit | Restart observes the same task without resubmission |
-| F04 | Disconnect during polling, then reconnect | Backoff and resume; do not report business failure |
-| F05 | Exit after remote completion but before result save | Retrieve again within remote retention window |
-| F06 | Exit after result save but before delivery | Resume from the outbox |
-| F07 | Exit after host acceptance but before local acknowledgement | Deduplicate/query acknowledgement, or document weaker semantics |
-| F08 | Race cancellation with completion | Report authoritative remote terminal state |
-| F09 | Restart while input is required | Reconcile request and handle duplicate answers explicitly |
-| F10 | Remote task expires or is removed | Show unavailable; no infinite retry or assumption of nonexecution |
-| F11 | Credentials expire or principal changes | Require authentication without crossing identity boundaries |
-| F12 | Start two local coordinators | Lock prevents duplicate coordination |
-| F13 | Restart FastMCP while Redis survives | Verify actual state and result recovery |
-| F14 | Kill worker during a batch | Record retry/restart behavior; no duplicate artifact publication |
-| F15 | Restart Redis | Verify configured durability separately from server restart |
-
-## Methods
-
-Use controlled clocks and fake protocol responses for state ordering and delivery races. End-to-end tests use real client/server processes and Redis/Valkey with process termination and a fault proxy. Explicit barriers make injection deterministic; random sleeps alone are insufficient.
-
-The example processes a deterministic public file set with batch checkpoints, cancellation observation points, and verifiable artifact digests. After initial passing runs, repeat critical crash windows and report the repetition count instead of inventing a success rate.
-
-## Evidence
-
-Record case ID, specification/dependency versions, configuration, injection point, expected/actual behavior, artifact digest, redacted logs, and PASS/FAIL/UNSUPPORTED.
-
-Measure recovery latency, duplicate submissions, duplicate deliveries, and time from cancellation request to observed terminal state. Count unknown outcomes separately rather than silently excluding them from success metrics.
-
-## Demo
-
-Show real artifacts, the same task ID before and after restart, input handling, session delivery, and the fault report. Demonstrate cancellation separately. A recording illustrates behavior; repeatable tests substantiate it.
+New recovery gates need deterministic fault boundaries, reopened processes/stores, original remote IDs and no-resubmission assertions. Server restart tests must query a result never cached by the durable client. Artifact tests must install into an empty directory. Record failing outcomes as well as successful evidence. No conformance, exactly-once or durability claim should exceed these tests.
