@@ -1,4 +1,5 @@
 import { assertJsonValue } from './json.js';
+import { assertSnapshot } from './snapshot.js';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
@@ -59,19 +60,24 @@ export class TaskStore {
     }
   }
   accept(id: string, remoteId: string, snapshot: Snapshot | null = null): TaskRecord {
-    return this.change(id, record => {
+    const accepted = this.change(id, record => {
       if (record.submission !== 'unknown') throw new Error('Task already accepted');
       if (typeof remoteId !== 'string' || !remoteId) throw new Error('Adapter returned an invalid task handle');
       record.remoteId = remoteId;
       record.submission = 'accepted';
-      record.snapshot = snapshot;
+      record.snapshot = null;
       record.observationError = null;
     });
+    // Commit the handle even if the adapter's optional initial state is invalid.
+    if (snapshot === null) return accepted;
+    try { return this.observe(id, snapshot); }
+    catch (error) { return this.recordError(id, error instanceof Error ? error.message : String(error)); }
   }
   observe(id: string, snapshot: Snapshot): TaskRecord {
     return this.change(id, record => {
       // Never overwrite a settled result with a late poll from another CLI process.
-      if (record.snapshot && ['completed', 'failed', 'cancelled'].includes(record.snapshot.status)) return false;
+      if (isTerminal(record.snapshot)) return false;
+      assertSnapshot(snapshot);
       record.snapshot = snapshot;
       record.observationError = null;
     });
@@ -109,6 +115,10 @@ export class TaskStore {
     });
   }
   recordError(id: string, message: string): TaskRecord {
-    return this.change(id, record => { record.observationError = message; });
+    return this.change(id, record => {
+      // Another observer may have settled the task while this query was in flight.
+      if (isTerminal(record.snapshot)) return false;
+      record.observationError = message;
+    });
   }
 }

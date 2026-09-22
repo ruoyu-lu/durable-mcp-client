@@ -52,7 +52,7 @@ node dist/cli.js recover
 node dist/cli.js status <task-id>
 ```
 
-Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status.
+Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status. Invalid adapter snapshots preserve the last valid state and are reported as observation errors. Once a terminal snapshot is saved, later observations and query errors cannot modify the record.
 
 The included `demo-v1` adapter is a deterministic mock: its handle encodes a readiness time and result. It demonstrates client persistence across processes, not server scheduling or live MCP interoperability. The adapter interface allows replacing it without changing the SQLite coordinator. The demo adapter does not support cancellation. Host delivery is not implemented yet. Use wait for bounded polling. The database stores task input/results in plaintext; use non-sensitive demo data.
 

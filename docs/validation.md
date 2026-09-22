@@ -1,17 +1,17 @@
 # Validation and coverage
 
-Audit baseline: 2026-09-21, commit 4e8c7b7. `npm run check` and 39 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and form-input flows. Test count is not a protocol coverage percentage.
+Verified 2026-09-22. `npm run check` and 46 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and form-input flows. Test count is not a protocol coverage percentage.
 
 | Behavior / original case | Evidence | Limit |
 | --- | --- | --- |
 | Modern metadata and SDK gaps (P01/P02) | tests/compatibility/sdk-tasks.test.mjs | Two passing probes assert unsupported SDK behavior; runtime uses a separate shim |
 | Direct/async JSON HTTP (P02/P03) | tests/runtime/http.test.mjs; FastMCP integration | One protocol and server combination |
 | Client reopen and polling errors (F03/F04) | tasks.test.mjs and separate-process HTTP CLI tests | Some crash windows are simulated, not SIGKILL injections |
-| Accepted-handle preservation (F01/F02) | invalid initial snapshot and unknown-submission tests | No recovery if acceptance response and handle were never obtained |
+| Accepted-handle preservation (F01/F02) | Invalid initial snapshot and unknown-submission tests; snapshots.test.mjs checks semantic failures across reopen without resubmission | No recovery if acceptance response and handle were never obtained |
 | Cancellation/completion races (F08/P05) | runtime tests plus live FastMCP cancellation | Cooperative cancellation, no proof arbitrary child work stops |
 | Pending input, explicit answers, duplicates (F09/P04) | runtime/store tests plus live choose_label | Lost/rejected reply correction is #16 |
 | Deadline, hints and signal interruption (P06 partial) | runtime HTTP and child-process signal tests | Creation hints and remote expiry handling incomplete |
-| Concurrent local use (F12 partial) | per-key two-connection guards, terminal snapshot tests | No elected single poller; late-error race and invalid snapshots are #15 |
+| Concurrent local use (F12 partial) | Per-key two-connection guards; snapshots.test.mjs controls competing queries, checks unchanged SQLite data_version after late errors, validates rollback and reopens records | No elected single poller; tests exercise multiple connections in one process |
 | Remote result after server restart (F05/F13) | Not tested yet; #17 | Must avoid satisfying test from locally cached terminal output |
 | Package installation | npm pack --dry-run audit | No dist/bin in current artifact; #18 |
 | Host delivery (F06/F07) | Deferred | No outbox or host adapter |
