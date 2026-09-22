@@ -11,6 +11,7 @@ CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP FastMCP endpoint
 - `src/cli.ts`: explicit commands, JSON output, wait deadlines and signal teardown.
 - `src/coordinator.ts`: submission, observation, cancellation, input responses and bounded wait. It never runs remote jobs.
 - `src/store.ts`: one JSON TaskRecord per SQLite row; transactional updates and per-input-key reservation. No schema-version migration mechanism yet.
+- `src/snapshot.ts`: normalized snapshot validation for supported statuses, required payloads and optional metadata before persistence.
 - `src/adapters/http.ts`: replaceable fetch shim pinned to 2026-07-28 because the tested SDK public Client path rejects Tasks. The SDK is currently used in compatibility tests, not runtime calls.
 - `examples/fastmcp/server.py`: independent FastMCP/Docket process with memory backend, batch hashing and form input. Redis configuration is R1 work.
 
@@ -18,7 +19,7 @@ CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP FastMCP endpoint
 
 TaskRecord contains local ID, adapter/endpoint hash, input, accepted remote ID, submission state, latest snapshot, observation error and timestamps. Optional cancellation attempts and per-request response records distinguish pending/acknowledged/unknown delivery. There are no caller/session IDs, credential references or delivery outbox.
 
-The handle is committed before the initial snapshot is persisted. Malformed payloads must not discard a known handle. Remote lifecycle, local reachability and cancellation/input delivery outcomes are separate. Terminal snapshots resist later snapshot writes; guarding late error writes and semantic validation are tracked in #15.
+The handle is committed before the initial snapshot is persisted. Malformed payloads must not discard a known handle. Remote lifecycle, local reachability and cancellation/input delivery outcomes are separate. New observations validate their status and required payloads inside the transaction; invalid observations roll back. Terminal snapshots resist both later snapshot writes and late observation errors without changing timestamps or writing to SQLite. Existing valid records remain readable without migration.
 
 ## Recovery and concurrency
 
