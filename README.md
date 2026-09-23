@@ -103,9 +103,13 @@ node dist/cli.js respond <task-id> --server http://localhost:8000/mcp --request-
 node dist/cli.js status <task-id> --server http://localhost:8000/mcp
 ```
 
-Inspect the request and supply the appropriate response explicitly. The client validates plain JSON and the outstanding key, but does not validate method-specific response schemas. Each key is reserved transactionally before sending. `inputResponses` records the response and `pending`, `acknowledged` or `unknown` outcome independently of task status. Duplicate attempts are rejected across processes, including after uncertain failures; no automatic replay or retry override is provided yet. Query the task to reconcile an uncertain outcome. Acknowledgment does not prove the task has resumed. Input responses are stored in plaintext alongside task data.
+Inspect the request and supply the response explicitly. Before sending, `respond` refreshes the task and validates the outstanding key inside the reservation transaction. Form elicitation checks the action, flat content and supplied JSON Schema (draft 2020-12 by default, or explicitly declared draft-07), including formats. Unsupported schemas fail locally; no remote schema fetching, coercion or defaults are applied. Invalid forms leave the key unreserved, so correct the response and run `respond` again. Other input methods receive plain-JSON checks only.
 
-The response flow is covered by loopback HTTP/process-restart tests and the real FastMCP `choose_label` example. Form elicitation through background task input is verified; standalone server-initiated requests and other input methods remain outside this coverage.
+Each sent response has an `attemptId` and a persisted `pending`, `acknowledged`, `unknown` or `rejected` outcome, separate from task status. A trusted adapter may report `rejected` only with evidence that the server did not accept the response. An explicit correction then refreshes the outstanding key and reserves a new attempt, retaining the rejection history. Concurrent corrections cannot reuse the same rejected attempt.
+
+The current HTTP adapter treats all remote failures as `unknown`, including JSON-RPC `-32602`. Error codes and a still-outstanding key do not prove non-acceptance. Pending, unknown and acknowledged attempts remain blocked across restarts, including older records without attempt IDs. Poll to learn the task's state; polling does not unlock retries. There is no automatic replay or force override. Structured failure details preserve HTTP status or protocol code/data where available. Inspect the returned record: a delivery failure can return JSON with exit code 0. Acknowledgment does not prove the task has resumed. Responses and error data are stored in plaintext.
+
+The response flow is covered by loopback HTTP/process-restart tests, controlled-adapter rejection/race tests and the real FastMCP `choose_label` example with an invalid-then-corrected form. Form elicitation through background task input is verified; standalone server-initiated requests and other input methods remain outside this coverage.
 
 ## Cancel a remote task
 

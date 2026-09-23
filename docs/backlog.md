@@ -1,12 +1,12 @@
 # Backlog
 
-Updated 2026-09-22. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
+Updated 2026-09-24. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
 
 ## Current: R1 — Reliable recovery
 
 - [x] [#15 State validation and late observation errors](https://github.com/ruoyu-lu/durable-mcp-client/issues/15) — semantic validation, handle preservation and competing-poll/reopen regressions pass.
-- [ ] [#16 Rejected versus uncertain input delivery](https://github.com/ruoyu-lu/durable-mcp-client/issues/16) — next implementation: safe explicit correction and request reconciliation.
-- [ ] [#17 Redis-backed server restart](https://github.com/ruoyu-lu/durable-mcp-client/issues/17) — retrieve uncached remote results using the original handle.
+- [x] [#16 Rejected versus uncertain input delivery](https://github.com/ruoyu-lu/durable-mcp-client/issues/16) — form preflight, structured errors, proven-rejection correction and concurrency/reopen regressions pass; generic HTTP failures remain unknown.
+- [ ] [#17 Redis-backed server restart](https://github.com/ruoyu-lu/durable-mcp-client/issues/17) — next implementation: retrieve uncached remote results using the original handle.
 
 ## Next: R2 — Installable CLI alpha
 

@@ -79,6 +79,10 @@ test('FastMCP background hashes survive CLI restart and match independent digest
   assert.equal(request.method, 'elicitation/create');
   assert.equal(request.params.requestedSchema.properties.label.type, 'string');
   assert.deepEqual((await run('list')).find(r => r.id === interactive.id).snapshot, waiting.snapshot);
+  await assert.rejects(run('respond', interactive.id, `--request-key=${key}`, '--response', JSON.stringify({ action: 'accept', content: { label: 42 } })), /Invalid form content/);
+  const afterInvalid = (await run('list')).find(r => r.id === interactive.id);
+  assert.equal(afterInvalid.inputResponses, undefined, 'Local rejection must not reserve the key');
+  assert.equal((await run('status', interactive.id)).snapshot.status, 'input_required');
   const response = { action: 'accept', content: { label: 'reviewed batch' } };
   const reply = await run('respond', interactive.id, `--request-key=${key}`, '--response', JSON.stringify(response));
   assert.equal(reply.inputResponses[0].outcome, 'acknowledged');
