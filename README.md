@@ -1,8 +1,15 @@
 # Durable MCP Client
 
+[![Build and test](https://github.com/ruoyu-lu/durable-mcp-client/actions/workflows/compatibility.yml/badge.svg)](https://github.com/ruoyu-lu/durable-mcp-client/actions/workflows/compatibility.yml)
+
+
 A client-side approach to managing long-running MCP tasks across disconnects and restarts.
 
 The standalone CLI stores task handles and results in SQLite, resumes observation after client exit, and supports explicit input responses, cancellation and bounded waits.
+
+## Why I built this
+
+Long-running agent tasks often outlive a CLI process or network connection. I built this client to make recovery an explicit, inspectable workflow: save the task handle and user intent locally, reconnect later, and never guess whether an uncertain submission should be repeated. It is a client-side durability layer, not a claim that server-side work is automatically checkpointed.
 
 ## Implemented capabilities
 
@@ -14,11 +21,18 @@ The standalone CLI stores task handles and results in SQLite, resumes observatio
 
 ## Architecture
 
-```text
-CLI -> Task coordinator -> JSON HTTP adapter -> FastMCP / Docket
-              |
-          SQLite records
+```mermaid
+flowchart LR
+    User[Operator / CLI] --> Coordinator[Task coordinator]
+    Coordinator <--> DB[(SQLite task records)]
+    Coordinator --> Adapter[JSON HTTP adapter]
+    Adapter --> Server[FastMCP / Docket task server]
+    Server --> Adapter
+    Adapter --> Coordinator
+    Coordinator --> User
 ```
+
+The CLI persists handles and intent before network calls. On restart, `recover` reads SQLite and observes known remote tasks without blindly resubmitting uncertain work.
 
 The current example uses an in-memory server backend. Redis server-restart evidence and an installable CLI alpha are the [next release gates](docs/roadmap.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
 
@@ -103,6 +117,10 @@ node dist/cli.js status <task-id> --server http://localhost:8000/mcp
 Cancellation intent is persisted before sending `tasks/cancel`. The returned record's `cancellation.outcome` is `acknowledged` when the server acknowledges the request, or `unknown` if it fails or the response cannot be validated. A crash can leave `pending`; that does not prove whether the request reached the server. These values are separate from the task's observed status: only a query can confirm `cancelled`, and work may complete before cancellation takes effect.
 
 `status` and `recover` keep querying without automatically resending cancellation. Repeat `cancel` explicitly if desired. A terminal task is returned unchanged; unknown submissions and unsupported adapters are rejected. Existing database records need no migration. Cancellation errors appear in `cancellation.error`; as with query failures, inspect the JSON record rather than relying only on the exit code.
+
+## Tests and CI
+
+`npm run check` validates the TypeScript build and static checks; `npm test` covers persistence, separate-process recovery, uncertain submissions, observation errors, terminal-state preservation, cancellation and input responses. The [Build and test workflow](https://github.com/ruoyu-lu/durable-mcp-client/actions/workflows/compatibility.yml) runs the checks on Node 22.13 and 24 and exercises FastMCP interoperability. The badge above reflects that workflow's live status.
 
 ## Development
 
