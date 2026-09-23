@@ -1,4 +1,7 @@
 import { assertJsonValue } from './json.js';
+import { validateInputResponse } from './input.js';
+import { failureDetails } from './errors.js';
+import type { FailureDetails } from './errors.js';
 import { assertSnapshot } from './snapshot.js';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
@@ -67,11 +70,12 @@ export class TaskStore {
       record.submission = 'accepted';
       record.snapshot = null;
       record.observationError = null;
+      delete record.observationErrorDetails;
     });
     // Commit the handle even if the adapter's optional initial state is invalid.
     if (snapshot === null) return accepted;
     try { return this.observe(id, snapshot); }
-    catch (error) { return this.recordError(id, error instanceof Error ? error.message : String(error)); }
+    catch (error) { return this.recordError(id, error instanceof Error ? error.message : String(error), failureDetails(error)); }
   }
   observe(id: string, snapshot: Snapshot): TaskRecord {
     return this.change(id, record => {
@@ -80,6 +84,7 @@ export class TaskStore {
       assertSnapshot(snapshot);
       record.snapshot = snapshot;
       record.observationError = null;
+      delete record.observationErrorDetails;
     });
   }
   requestCancellation(id: string, attemptId: string): TaskRecord {
@@ -89,36 +94,47 @@ export class TaskStore {
       record.cancellation = { attemptId, requestedAt: new Date().toISOString(), outcome: 'pending', error: null };
     });
   }
-  finishCancellation(id: string, attemptId: string, error: string | null): TaskRecord {
+  finishCancellation(id: string, attemptId: string, error: string | null, details?: FailureDetails): TaskRecord {
     return this.change(id, record => {
       if (record.cancellation?.attemptId !== attemptId) return false;
       record.cancellation.outcome = error === null ? 'acknowledged' : 'unknown';
       record.cancellation.error = error;
+      if (details) record.cancellation.errorDetails = details;
+      else delete record.cancellation.errorDetails;
     });
   }
-  reserveInput(id: string, key: string, response: Record<string, unknown>): TaskRecord {
+  reserveInput(id: string, key: string, response: Record<string, unknown>, attemptId = randomUUID(), rejectedAttemptId?: string): TaskRecord {
     assertJsonValue(response, 'Input response');
     if (!response || typeof response !== 'object' || Array.isArray(response)) throw new Error('Input response must be an object');
     return this.change(id, record => {
       if (record.submission !== 'accepted' || !record.remoteId || record.snapshot?.status !== 'input_required'
         || !Object.hasOwn(record.snapshot.inputRequests ?? {}, key)) throw new Error('Request key is not outstanding');
-      if (record.inputResponses?.some(item => item.key === key)) throw new Error('Response already attempted; query the task before reconciliation');
-      (record.inputResponses ??= []).push({ key, response, outcome: 'pending', error: null });
+      const attempts = record.inputResponses?.filter(item => item.key === key) ?? [];
+      if (attempts.some(item => item.outcome !== 'rejected' || !item.rejectionEvidence)) throw new Error('Response already attempted; delivery cannot be safely replayed');
+      const last = attempts.at(-1);
+      if (last && (!last.attemptId || last.attemptId !== rejectedAttemptId)) throw new Error('Rejected response changed; refresh before correction');
+      if (record.observationError) throw new Error('Cannot verify outstanding input after an observation failure');
+      validateInputResponse(record.snapshot.inputRequests![key]!, response);
+      (record.inputResponses ??= []).push({ key, attemptId, response, outcome: 'pending', error: null });
     });
   }
-  finishInput(id: string, key: string, error: string | null): TaskRecord {
+  finishInput(id: string, key: string, attemptId: string, details: FailureDetails | null, rejectionEvidence?: string): TaskRecord {
     return this.change(id, record => {
-      const attempt = record.inputResponses?.find(item => item.key === key);
+      const attempt = record.inputResponses?.find(item => item.key === key && item.attemptId === attemptId);
       if (!attempt || attempt.outcome !== 'pending') return false;
-      attempt.outcome = error === null ? 'acknowledged' : 'unknown';
-      attempt.error = error;
+      attempt.outcome = details === null ? 'acknowledged' : rejectionEvidence ? 'rejected' : 'unknown';
+      attempt.error = details?.message ?? null;
+      if (details) attempt.errorDetails = details;
+      if (rejectionEvidence) attempt.rejectionEvidence = rejectionEvidence;
     });
   }
-  recordError(id: string, message: string): TaskRecord {
+  recordError(id: string, message: string, details?: FailureDetails): TaskRecord {
     return this.change(id, record => {
       // Another observer may have settled the task while this query was in flight.
       if (isTerminal(record.snapshot)) return false;
       record.observationError = message;
+      if (details) record.observationErrorDetails = details;
+      else delete record.observationErrorDetails;
     });
   }
 }

@@ -1,3 +1,4 @@
+import { AdapterError } from '../errors.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { validPollInterval } from '../types.js';
 import type { Snapshot, TaskAdapter } from '../types.js';
@@ -24,24 +25,47 @@ export class HttpTaskAdapter implements TaskAdapter {
 
   private async request(method: string, params: Record<string, unknown>, name?: string, signal?: AbortSignal): Promise<Record<string, any>> {
     const id = randomUUID();
-    const response = await fetch(this.endpoint, {
-      method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs),
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream',
-        'Mcp-Protocol-Version': version, 'Mcp-Method': method, ...(name ? { 'Mcp-Name': name } : {}) },
-      body: JSON.stringify({ jsonrpc: '2.0', id, method, params: { ...params, _meta: {
-        'io.modelcontextprotocol/protocolVersion': version,
-        'io.modelcontextprotocol/clientInfo': { name: 'durable-mcp-client', version: '0.0.0' },
-        'io.modelcontextprotocol/clientCapabilities': { extensions: { [extension]: {} } },
-      } } }),
-    });
-    if (!response.ok) { await response.body?.cancel(); throw new Error(`MCP HTTP ${response.status}`); }
-    if (response.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') {
-      await response.body?.cancel(); throw new Error('Only JSON MCP responses are currently supported');
+    let response: Response;
+    try {
+      response = await fetch(this.endpoint, {
+        method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream',
+          'Mcp-Protocol-Version': version, 'Mcp-Method': method, ...(name ? { 'Mcp-Name': name } : {}) },
+        body: JSON.stringify({ jsonrpc: '2.0', id, method, params: { ...params, _meta: {
+          'io.modelcontextprotocol/protocolVersion': version,
+          'io.modelcontextprotocol/clientInfo': { name: 'durable-mcp-client', version: '0.0.0' },
+          'io.modelcontextprotocol/clientCapabilities': { extensions: { [extension]: {} } },
+        } } }),
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      throw new AdapterError({ kind: 'transport', method, message: String(error) }, { cause: error });
     }
-    const envelope = object(await response.json());
-    if (envelope.jsonrpc !== '2.0' || envelope.id !== id) throw new Error('Invalid JSON-RPC response identity');
-    if ('error' in envelope) throw new Error(`MCP error: ${JSON.stringify(envelope.error)}`);
-    return object(envelope.result);
+    if (!response.ok) { await response.body?.cancel(); throw new AdapterError({ kind: 'http', method, status: response.status, message: `MCP HTTP ${response.status}` }); }
+    if (response.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') {
+      await response.body?.cancel(); throw new AdapterError({ kind: 'invalid_response', method, message: 'Only JSON MCP responses are currently supported' });
+    }
+    let body: unknown;
+    try { body = await response.json(); }
+    catch (error) {
+      if (signal?.aborted) throw error;
+      throw new AdapterError({ kind: error instanceof SyntaxError ? 'invalid_response' : 'transport', method, message: String(error) }, { cause: error });
+    }
+    try {
+      const envelope = object(body);
+      if (envelope.jsonrpc !== '2.0' || envelope.id !== id || ('error' in envelope && 'result' in envelope)) throw new Error('Invalid JSON-RPC response identity');
+      if ('error' in envelope) {
+        const error = object(envelope.error);
+        if (!Number.isSafeInteger(error.code) || typeof error.message !== 'string') throw new Error('Invalid JSON-RPC error');
+        // Error codes alone do not establish that a task update had no effects.
+        throw new AdapterError({ kind: 'protocol', method, code: error.code, message: error.message,
+          ...('data' in error ? { data: error.data } : {}) });
+      }
+      return object(envelope.result);
+    } catch (error) {
+      if (error instanceof AdapterError) throw error;
+      throw new AdapterError({ kind: 'invalid_response', method, message: String(error) });
+    }
   }
 
   async submit(input: unknown): Promise<{ remoteId: string; snapshot: Snapshot | null }> {
@@ -65,7 +89,7 @@ export class HttpTaskAdapter implements TaskAdapter {
 
   async respond(remoteId: string, key: string, response: Record<string, unknown>): Promise<void> {
     const result = await this.request('tasks/update', { taskId: remoteId, inputResponses: { [key]: response } }, remoteId);
-    if (result.resultType !== 'complete') throw new Error('Invalid input acknowledgment');
+    if (result.resultType !== 'complete') throw new AdapterError({ kind: 'invalid_response', method: 'tasks/update', message: 'Invalid input acknowledgment' });
   }
 
   async cancel(remoteId: string): Promise<void> {

@@ -1,3 +1,4 @@
+import { InputRejectedError, failureDetails } from './errors.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
 import type { TaskAdapter, TaskRecord } from './types.js';
@@ -16,13 +17,13 @@ export class TaskCoordinator {
       // Persist the known handle independently of potentially invalid payloads.
       this.store.accept(record.id, submitted.remoteId);
     } catch (error) {
-      this.store.recordError(record.id, error instanceof Error ? error.message : String(error));
+      this.store.recordError(record.id, error instanceof Error ? error.message : String(error), failureDetails(error));
       throw new Error(`Submission outcome unknown for ${record.id}: ${String(error)}`, { cause: error });
     }
     try {
       return submitted.snapshot === null ? this.store.get(record.id) : this.store.observe(record.id, submitted.snapshot);
     } catch (error) {
-      return this.store.recordError(record.id, error instanceof Error ? error.message : String(error));
+      return this.store.recordError(record.id, error instanceof Error ? error.message : String(error), failureDetails(error));
     }
   }
 
@@ -36,7 +37,7 @@ export class TaskCoordinator {
       // Aborting observation is a local lifecycle event, not a new remote error.
       if (signal?.aborted) return this.store.get(id);
       // A network/adapter error is not a remote task failure.
-      return this.store.recordError(id, String(error));
+      return this.store.recordError(id, String(error), failureDetails(error));
     }
   }
   async cancel(id: string): Promise<TaskRecord> {
@@ -51,7 +52,7 @@ export class TaskCoordinator {
     try {
       await this.adapter.cancel(record.remoteId);
     } catch (error) {
-      return this.store.finishCancellation(id, attemptId, String(error));
+      return this.store.finishCancellation(id, attemptId, String(error), failureDetails(error));
     }
     // An acknowledgment is not a terminal observation. Recovery only polls;
     // it never replays a cancellation whose response may have been lost.
@@ -61,15 +62,23 @@ export class TaskCoordinator {
     const record = this.store.get(id);
     if (record.adapter !== this.adapter.name) throw new Error(`Adapter mismatch: ${record.adapter}`);
     if (!this.adapter.respond) throw new Error('Adapter does not support input responses');
-    // Reservation and duplicate check share a SQLite transaction across processes.
-    const pending = this.store.reserveInput(id, key, response);
+    if (record.submission !== 'accepted' || !record.remoteId) throw new Error('Cannot answer an unknown submission');
+    const attempts = record.inputResponses?.filter(item => item.key === key) ?? [];
+    if (attempts.some(item => item.outcome !== 'rejected' || !item.rejectionEvidence)) throw new Error('Response already attempted; delivery cannot be safely replayed');
+    // Polling reconciles the outstanding key; it cannot prove a lost reply was rejected.
+    const fresh = await this.refresh(id);
+    if (fresh.observationError) throw new Error('Cannot verify outstanding input after an observation failure');
+    const attemptId = randomUUID();
+    // Reservation rechecks the key and prior attempt in one transaction across processes.
+    const pending = this.store.reserveInput(id, key, response, attemptId, attempts.at(-1)?.attemptId);
     try {
       await this.adapter.respond(pending.remoteId!, key, response);
     } catch (error) {
-      return this.store.finishInput(id, key, String(error));
+      return this.store.finishInput(id, key, attemptId, failureDetails(error), error instanceof InputRejectedError ? error.evidence : undefined);
     }
-    return this.store.finishInput(id, key, null);
+    return this.store.finishInput(id, key, attemptId, null);
   }
+
   async wait(id: string, intervalMs = 1000, timeoutMs = 60000, interruption?: AbortSignal): Promise<{ reason: 'terminal' | 'input_required' | 'unknown_submission' | 'timeout' | 'interrupted'; task: TaskRecord }> {
     for (const [name, value] of [['interval', intervalMs], ['timeout', timeoutMs]] as const) {
       if (!Number.isSafeInteger(value) || value < 1 || value > 86400000) throw new Error(`${name} must be an integer from 1 to 86400000 ms`);

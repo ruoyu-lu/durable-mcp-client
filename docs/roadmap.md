@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated 2026-09-22. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
+Updated 2026-09-24. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
 
 ## Baseline — working development CLI (delivered)
 
@@ -13,7 +13,7 @@ Evidence: `npm run check`, `npm test`, `npm run test:fastmcp`. This is a source-
 [GitHub milestone](https://github.com/ruoyu-lu/durable-mcp-client/milestone/1)
 
 1. **State correctness (#15, delivered):** invalid snapshots are rejected without losing handles; late poll errors cannot modify settled records. Competing-query, SQLite no-write and reopen regressions pass.
-2. **Input recovery (#16):** distinguish explicit rejection from uncertain delivery; allow safe explicit correction where non-acceptance is established. Preserve unknown/acknowledged duplicate guards and reconcile outstanding keys.
+2. **Input recovery (#16, delivered):** local form preflight, structured errors, explicit correction for adapter-proven rejection, refreshed keys and attempt-scoped race guards. Lost/unknown/acknowledged responses stay blocked across restarts. The HTTP adapter does not infer non-acceptance from errors; server rejection recovery requires a verified adapter contract.
 3. **Server restart evidence (#17):** configurable Redis example; retrieve a remotely completed result that was never cached locally after FastMCP restarts at the same endpoint. Prove no resubmission.
 
 Gate: these issues have executable regression evidence and accurate limits. A restarted server retrieving completed results does not prove arbitrary active jobs resume, nor that Redis survives its own restart. No global coordinator lock is required solely to replace transactional per-key guards; add ownership only for a demonstrated race.

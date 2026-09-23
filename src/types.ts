@@ -1,3 +1,4 @@
+import type { FailureDetails } from './errors.js';
 export type RemoteStatus = 'working' | 'input_required' | 'completed' | 'failed' | 'cancelled';
 export interface Snapshot {
   status: RemoteStatus;
@@ -18,9 +19,10 @@ export interface TaskRecord {
   submission: 'unknown' | 'accepted';
   snapshot: Snapshot | null;
   observationError: string | null;
+  observationErrorDetails?: FailureDetails;
   /** Latest explicit cancellation attempt; absent on older/untouched records. */
-  cancellation?: { attemptId: string; requestedAt: string; outcome: 'pending' | 'acknowledged' | 'unknown'; error: string | null };
-  inputResponses?: Array<{ key: string; response: Record<string, unknown>; outcome: 'pending' | 'acknowledged' | 'unknown'; error: string | null }>;
+  cancellation?: { attemptId: string; requestedAt: string; outcome: 'pending' | 'acknowledged' | 'unknown'; error: string | null; errorDetails?: FailureDetails };
+  inputResponses?: Array<{ key: string; attemptId?: string; response: Record<string, unknown>; outcome: 'pending' | 'acknowledged' | 'unknown' | 'rejected'; error: string | null; errorDetails?: FailureDetails; rejectionEvidence?: string }>;
   createdAt: string;
   updatedAt: string;
 }

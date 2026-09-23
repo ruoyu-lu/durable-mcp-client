@@ -17,7 +17,7 @@ The supported baseline is one local user, the pinned modern JSON HTTP contract a
 
 ## Guarantees and limits
 
-Accepted handles survive client restarts. Unknown submission outcomes are never automatically retried. Cancellation acknowledgments do not prove cancellation. Input response attempts are durably guarded against duplicates; explicit rejection reconciliation is unfinished. The database stores payloads in plaintext. The current endpoint identity is a URL hash, not an authenticated-principal identity.
+Accepted handles survive client restarts. Unknown submission outcomes are never automatically retried. Cancellation acknowledgments do not prove cancellation. Input response attempts are durably guarded against duplicates. Invalid forms can be corrected before sending; adapter-proven rejection permits an explicit, refreshed correction with retained history. The generic HTTP path cannot establish non-acceptance from remote errors, so those outcomes remain unknown and cannot be replayed. The database stores payloads in plaintext. The current endpoint identity is a URL hash, not an authenticated-principal identity.
 
 The memory-backed example loses remote tasks when its server exits. No active-job checkpointing, Redis restart durability, outbox, exactly-once delivery, or host continuation is claimed.
 

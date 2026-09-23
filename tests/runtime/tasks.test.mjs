@@ -288,7 +288,7 @@ test('input response loss survives reopen without replay and blocks a second wri
   const db = database(t); let store = new TaskStore(db); let sends = 0;
   const task = store.create('input', {});
   store.accept(task.id, 'remote', { status: 'input_required', inputRequests: { key: { method: 'elicitation/create' } } });
-  const adapter = { name: 'input', query: async () => ({ status: 'working' }), respond: async () => {
+  const adapter = { name: 'input', query: async () => sends ? ({ status: 'working' }) : ({ status: 'input_required', inputRequests: { key: { method: 'elicitation/create' } } }), respond: async () => {
     sends++;
     const second = new TaskStore(db);
     try { assert.throws(() => second.reserveInput(task.id, 'key', {}), /already attempted/); }

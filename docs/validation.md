@@ -1,6 +1,6 @@
 # Validation and coverage
 
-Verified 2026-09-22. `npm run check` and 46 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and form-input flows. Test count is not a protocol coverage percentage.
+Verified 2026-09-24. `npm run check` and 58 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and invalid-then-corrected form-input flows. Test count is not a protocol coverage percentage.
 
 | Behavior / original case | Evidence | Limit |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ Verified 2026-09-22. `npm run check` and 46 runtime/compatibility tests pass. `n
 | Client reopen and polling errors (F03/F04) | tasks.test.mjs and separate-process HTTP CLI tests | Some crash windows are simulated, not SIGKILL injections |
 | Accepted-handle preservation (F01/F02) | Invalid initial snapshot and unknown-submission tests; snapshots.test.mjs checks semantic failures across reopen without resubmission | No recovery if acceptance response and handle were never obtained |
 | Cancellation/completion races (F08/P05) | runtime tests plus live FastMCP cancellation | Cooperative cancellation, no proof arbitrary child work stops |
-| Pending input, explicit answers, duplicates (F09/P04) | runtime/store tests plus live choose_label | Lost/rejected reply correction is #16 |
+| Pending input, explicit answers, duplicates (F09/P04) | input-recovery.test.mjs covers preflight, proven rejection, lost HTTP replies, stale keys, concurrent corrections, late completions and legacy/reopened records; live choose_label covers invalid-then-corrected input | Proven remote rejection uses a controlled adapter contract; generic HTTP errors remain unknown. No replay override or inference from outstanding keys |
 | Deadline, hints and signal interruption (P06 partial) | runtime HTTP and child-process signal tests | Creation hints and remote expiry handling incomplete |
 | Concurrent local use (F12 partial) | Per-key two-connection guards; snapshots.test.mjs controls competing queries, checks unchanged SQLite data_version after late errors, validates rollback and reopens records | No elected single poller; tests exercise multiple connections in one process |
 | Remote result after server restart (F05/F13) | Not tested yet; #17 | Must avoid satisfying test from locally cached terminal output |
