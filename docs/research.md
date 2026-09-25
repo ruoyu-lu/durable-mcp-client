@@ -27,7 +27,7 @@ The CLI now uses the pinned modern contract and a tested JSON HTTP shim. SDK pro
 | Q01: Server / SDK interoperability | FastMCP 4.0.3 works through the HTTP shim; the pinned TypeScript SDK rejects Tasks. See the compatibility tests and real-server integration. |
 | Q02–Q06: Host providers, session recovery and delivery | Unverified and deferred to the bounded R4 host probe. They do not block R1/R2. |
 | Q07: Submission deduplication / discovery | The pinned contract provides no standard submission idempotency key or tasks/list. Unknown submissions remain unreplayed; server-specific reconciliation needs separate evidence. |
-| Q08: Cancellation and server durability | Live cancellation is tested. Redis-backed completed-result retrieval after server restart is R1 issue #17. Active-worker recovery, TTL cleanup and Redis restart remain unverified. |
+| Q08: Cancellation and server durability | Live cancellation is tested. Redis-backed completed-result retrieval after FastMCP restart is tested, with Redis kept running and no cached client result (#17). Active-worker recovery, TTL cleanup and Redis restart remain unverified. |
 
 ## Related implementations
 

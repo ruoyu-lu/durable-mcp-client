@@ -1,4 +1,4 @@
-"""Local background batch hashing service; keep running during client restarts."""
+"""Local background hashing; configure FASTMCP_DOCKET_URL for Redis recovery."""
 import argparse
 import asyncio
 import hashlib
@@ -8,7 +8,8 @@ from mcp.types import InputRequiredResult
 from fastmcp_tasks import TasksExtension
 
 mcp = FastMCP("Batch hashing")
-mcp.add_extension(TasksExtension(url="memory://"))
+# Defaults to memory://; reuse the same backend URL and queue name on restart.
+mcp.add_extension(TasksExtension())
 
 
 @mcp.tool(task=True)

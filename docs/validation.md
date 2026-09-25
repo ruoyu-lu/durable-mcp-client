@@ -1,6 +1,6 @@
 # Validation and coverage
 
-Verified 2026-09-24. `npm run check` and 58 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and invalid-then-corrected form-input flows. Test count is not a protocol coverage percentage.
+Verified 2026-09-25. `npm run check` and 58 runtime/compatibility tests pass. `npm run test:fastmcp` runs one integration case containing hashing, cancellation and invalid-then-corrected form-input flows. `npm run test:fastmcp:restart` adds a separate real Redis/FastMCP restart case. Test count is not a protocol coverage percentage.
 
 | Behavior / original case | Evidence | Limit |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ Verified 2026-09-24. `npm run check` and 58 runtime/compatibility tests pass. `n
 | Pending input, explicit answers, duplicates (F09/P04) | input-recovery.test.mjs covers preflight, proven rejection, lost HTTP replies, stale keys, concurrent corrections, late completions and legacy/reopened records; live choose_label covers invalid-then-corrected input | Proven remote rejection uses a controlled adapter contract; generic HTTP errors remain unknown. No replay override or inference from outstanding keys |
 | Deadline, hints and signal interruption (P06 partial) | runtime HTTP and child-process signal tests | Creation hints and remote expiry handling incomplete |
 | Concurrent local use (F12 partial) | Per-key two-connection guards; snapshots.test.mjs controls competing queries, checks unchanged SQLite data_version after late errors, validates rollback and reopens records | No elected single poller; tests exercise multiple connections in one process |
-| Remote result after server restart (F05/F13) | Not tested yet; #17 | Must avoid satisfying test from locally cached terminal output |
+| Remote result after server restart (F05/F13) | fastmcp-restart.test.mjs: SIGKILL after independent completion observation, empty local result, outage, same-endpoint restart, new CLI process and original-handle query; proxy counts exactly one submission | Redis stays running with disk persistence disabled; does not prove active-worker recovery or Redis restart durability |
 | Package installation | npm pack --dry-run audit | No dist/bin in current artifact; #18 |
 | Host delivery (F06/F07) | Deferred | No outbox or host adapter |
 | Expiry/auth/isolation (F10/F11/P07) | Unsupported | No authentication, principal scope or classified unavailable state |
@@ -20,6 +20,6 @@ Verified 2026-09-24. `npm run check` and 58 runtime/compatibility tests pass. `n
 
 ## Required commands
 
-Run `npm run check` and `npm test` for product changes. Run `FASTMCP_PYTHON=<venv-python> npm run test:fastmcp` for adapter/server changes; CI installs pinned example dependencies on Python 3.12. Runtime CI covers Node 22.13 and 24. State exactly which tests were run locally versus only in CI.
+Run `npm run check` and `npm test` for product changes. Run `FASTMCP_PYTHON=<venv-python> npm run test:fastmcp` for adapter/server changes. Also run `FASTMCP_PYTHON=<venv-python> npm run test:fastmcp:restart` with redis-server available for backend/recovery changes. CI installs Redis and pinned example dependencies on Python 3.12. Runtime CI covers Node 22.13 and 24. State exactly which tests were run locally versus only in CI.
 
 New recovery gates need deterministic fault boundaries, reopened processes/stores, original remote IDs and no-resubmission assertions. Server restart tests must query a result never cached by the durable client. Artifact tests must install into an empty directory. Record failing outcomes as well as successful evidence. No conformance, exactly-once or durability claim should exceed these tests.

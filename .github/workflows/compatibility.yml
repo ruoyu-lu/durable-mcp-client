@@ -38,3 +38,11 @@ jobs:
       - run: npm run test:fastmcp
         env:
           FASTMCP_PYTHON: python
+      - name: Install isolated-test Redis runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-server
+          redis-server --version
+      - run: npm run test:fastmcp:restart
+        env:
+          FASTMCP_PYTHON: python

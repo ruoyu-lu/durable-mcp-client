@@ -17,7 +17,7 @@ Long-running agent tasks often outlive a CLI process or network connection. I bu
 - Submission uncertainty and observation failures kept separate from remote status.
 - Durable cancellation/input attempts with duplicate-response guards.
 - Wait deadlines, server polling hints and local signal interruption.
-- FastMCP examples covering batch hashing, cancellation and background form input.
+- FastMCP examples covering batch hashing, cancellation, background form input and Redis-backed result retrieval after server restart.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ flowchart LR
 
 The CLI persists handles and intent before network calls. On restart, `recover` reads SQLite and observes known remote tasks without blindly resubmitting uncertain work.
 
-The current example uses an in-memory server backend. Redis server-restart evidence and an installable CLI alpha are the [next release gates](docs/roadmap.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
+The example defaults to an in-memory backend; [Redis configuration](examples/fastmcp/README.md#recover-results-after-a-server-restart) enables tested retrieval of completed results after FastMCP restarts. An installable CLI alpha is the [next release gate](docs/roadmap.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
 
 Server scheduling and execution are delegated to existing runtimes. Here, **durable** refers to client-side task tracking and recovery; it does not promise automatic checkpointing of arbitrary server code or exactly-once external side effects.
 

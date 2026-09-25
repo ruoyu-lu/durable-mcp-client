@@ -29,7 +29,7 @@ FASTMCP_PYTHON=.venv/bin/python npm run test:fastmcp
 
 The test starts a real FastMCP service on an OS-assigned port, submits a background task, queries through separate CLI processes, checks an intermediate working state and independently verifies each digest. It shuts down its server and removes its temporary SQLite database.
 
-Core interoperability versions are pinned in `requirements.txt`; transitive dependencies are resolved by pip. This example uses an explicitly in-memory Docket backend: **client restarts are tested, server restarts lose tasks**. The integration also submits another task, sends `cancel`, and checks the eventual `cancelled` state from a new CLI process. To try this manually, run `node dist/cli.js cancel <task-id> --server http://127.0.0.1:8000/mcp` before the delay ends, then query its status. The background form-input flow is covered below and by the same integration test. Redis persistence, authentication, other input methods and SSE remain separate work. See the [FastMCP background task documentation](https://gofastmcp.com/servers/tasks).
+Core interoperability versions are pinned in `requirements.txt`; transitive dependencies are resolved by pip. The default Docket backend is `memory://`: client restarts work, but server restarts lose tasks. `FASTMCP_DOCKET_URL` and `FASTMCP_DOCKET_NAME` configure an alternative backend and queue through FastMCP. The integration also submits another task, sends `cancel`, and checks the eventual `cancelled` state from a new CLI process. To try this manually, run `node dist/cli.js cancel <task-id> --server http://127.0.0.1:8000/mcp` before the delay ends, then query its status. The background form-input flow is covered below and by the same integration test. Redis-backed completed-result retrieval is covered below. Redis-process durability, authentication, other input methods and SSE remain separate work. See the [FastMCP background task documentation](https://gofastmcp.com/servers/tasks).
 
 ## Answer a background input request
 
@@ -46,3 +46,29 @@ node dist/cli.js status <task-id> --server http://127.0.0.1:8000/mcp
 Poll until input_required before answering. Use the equals form so keys beginning with a dash are accepted. Use the surfaced request key exactly: FastMCP assigns keys per task execution leg. Each command runs in a fresh client process, and `list` reads the saved request without contacting the server. Poll after the acknowledgment to retrieve the chosen label.
 
 The tool returns `InputRequiredResult` to park the task, then reads a typed `ElicitResult` from `ctx.input_responses` when FastMCP re-enters it. It validates the accepted label before returning it. The integration first submits an invalid numeric label, verifies local rejection leaves the key unreserved, then sends a valid string and verifies the full cycle; no extra elicitation capability was required for this pinned background-task path. This does not establish standalone elicitation or other input-method support.
+
+## Recover results after a server restart
+
+Start a dedicated local Redis instance in one terminal (keep it running):
+
+```sh
+redis-server --bind 127.0.0.1 --port 6380 --save "" --appendonly no
+```
+
+Start the example with a stable backend and queue in another terminal:
+
+```sh
+FASTMCP_DOCKET_URL=redis://127.0.0.1:6380/0 FASTMCP_DOCKET_NAME=durable-example .venv/bin/python examples/fastmcp/server.py --port 8000
+```
+
+Submit `hash_batch` through the CLI as above. After the task completes on the server, stop and restart FastMCP using the same command, port, Redis URL and queue name. Use `recover` or `status` with the original local task ID, endpoint and SQLite database; do not submit the tool again. Retrieval depends on the server retaining the task and result within its retention period.
+
+For a reproducible check that cannot pass from a cached CLI result:
+
+```sh
+FASTMCP_PYTHON=.venv/bin/python npm run test:fastmcp:restart
+```
+
+Requires `redis-server` on PATH, or set `REDIS_SERVER` to its executable path. The test starts its own loopback Redis process and unique queue, independently observes remote completion, and verifies the CLI database still has no result. It kills FastMCP with SIGKILL, checks that an outage preserves the handle, restarts the server at the same endpoint, and fetches the result from a fresh CLI process. A recording proxy verifies exactly one `tools/call` across the whole scenario; the retrieved digests are checked independently. All owned services and temporary data are cleaned up. CI runs this test too.
+
+Redis remains running throughout. Disk persistence is deliberately disabled for this isolated test. This proves completed-result retrieval after a FastMCP restart, not recovery of running workers, arbitrary task checkpoints, Redis restart durability or exactly-once side effects.
