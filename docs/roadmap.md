@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated 2026-09-24. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
+Updated 2026-09-25. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
 
 ## Baseline — working development CLI (delivered)
 
@@ -8,21 +8,21 @@ PRs #5–#14 provide SQLite task records; submit/list/status/recover/cancel/resp
 
 Evidence: `npm run check`, `npm test`, `npm run test:fastmcp`. This is a source-checkout workflow, not a published package or general MCP conformance claim. See the [audit](audits/2026-09-21.md) and [coverage map](validation.md).
 
-## R1 — Reliable recovery (current)
+## R1 — Reliable recovery (delivered)
 
 [GitHub milestone](https://github.com/ruoyu-lu/durable-mcp-client/milestone/1)
 
 1. **State correctness (#15, delivered):** invalid snapshots are rejected without losing handles; late poll errors cannot modify settled records. Competing-query, SQLite no-write and reopen regressions pass.
 2. **Input recovery (#16, delivered):** local form preflight, structured errors, explicit correction for adapter-proven rejection, refreshed keys and attempt-scoped race guards. Lost/unknown/acknowledged responses stay blocked across restarts. The HTTP adapter does not infer non-acceptance from errors; server rejection recovery requires a verified adapter contract.
-3. **Server restart evidence (#17):** configurable Redis example; retrieve a remotely completed result that was never cached locally after FastMCP restarts at the same endpoint. Prove no resubmission.
+3. **Server restart evidence (#17, delivered):** environment-configured Redis example; independent completion observation and empty local result, FastMCP SIGKILL, outage preservation and same-endpoint restart. A new CLI process retrieves the original handle; a recording proxy proves only one submission.
 
-Gate: these issues have executable regression evidence and accurate limits. A restarted server retrieving completed results does not prove arbitrary active jobs resume, nor that Redis survives its own restart. No global coordinator lock is required solely to replace transactional per-key guards; add ownership only for a demonstrated race.
+Gate passed: these issues have executable regression evidence and documented limits, including the separate `test:fastmcp:restart` scenario. A restarted server retrieving completed results does not prove arbitrary active jobs resume, nor that Redis survives its own restart. No global coordinator lock is required solely to replace transactional per-key guards; add ownership only for a demonstrated race.
 
-## R2 — Installable CLI alpha
+## R2 — Installable CLI alpha (current)
 
 [GitHub milestone](https://github.com/ruoyu-lu/durable-mcp-client/milestone/2), issue #18.
 
-Deliver a deliberate package file list, CLI bin, build/pack flow, dependency split and clean-directory tarball installation test. Exercise the same command sequence without repository node_modules. Choose CLI-only versus a supported library API explicitly. Review licensing, CLI exit/output contracts and concise limitations; prepare release notes and a tagged alpha.
+The R1 completion review keeps packaging next: the source workflow now demonstrates recovery, but users still cannot install a runnable artifact. No failing check or new interoperability requirement changes that priority. Deliver a deliberate package file list, CLI bin, build/pack flow, dependency split and clean-directory tarball installation test. Exercise the same command sequence without repository node_modules. Choose CLI-only versus a supported library API explicitly. Review licensing, CLI exit/output contracts and concise limitations; prepare release notes and a tagged alpha.
 
 Gate: a fresh environment installs the artifact and reproduces the demo. R1 gates pass. A public version is only considered released when registry/tag publication is verified. Lack of registry access leaves a tested artifact ready to publish; it is not a reason to spend repeated runs rewriting release documents.
 

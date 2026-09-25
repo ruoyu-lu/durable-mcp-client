@@ -14,7 +14,7 @@ CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP FastMCP endpoint
 - `src/input.ts` and `src/errors.ts`: local form validation and structured failures, including adapter-proven input rejection.
 - `src/snapshot.ts`: normalized snapshot validation for supported statuses, required payloads and optional metadata before persistence.
 - `src/adapters/http.ts`: replaceable fetch shim pinned to 2026-07-28 because the tested SDK public Client path rejects Tasks. The SDK is currently used in compatibility tests, not runtime calls.
-- `examples/fastmcp/server.py`: independent FastMCP/Docket process with memory backend, batch hashing and form input. Redis configuration is R1 work.
+- `examples/fastmcp/server.py`: independent FastMCP/Docket process with batch hashing and form input. TasksExtension reads FASTMCP_DOCKET_URL/NAME; memory is the default, Redis enables completed-result retrieval after server restart.
 
 ## Stored state
 
@@ -32,4 +32,4 @@ Only a trusted adapter's `InputRejectedError` with non-acceptance evidence permi
 
 ## Future boundaries
 
-Before authentication, identity must include principal scope as well as endpoint and task ID, with credentials reacquired outside task payload storage. Structured errors should support unavailable/auth/transient distinctions. Before a host adapter, verify session association and idempotent acknowledgment; only then add a transactional result outbox. Before server-recovery claims, test Redis-backed result reattachment independently from worker checkpoints and Redis durability. See the [roadmap](roadmap.md).
+Before authentication, identity must include principal scope as well as endpoint and task ID, with credentials reacquired outside task payload storage. Structured errors should support unavailable/auth/transient distinctions. Before a host adapter, verify session association and idempotent acknowledgment; only then add a transactional result outbox. Redis-backed completed-result reattachment is tested with SIGKILL of FastMCP; worker checkpoints and Redis-process durability remain separate, unverified boundaries. See the [roadmap](roadmap.md).

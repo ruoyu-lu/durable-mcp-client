@@ -14,7 +14,8 @@ const exec = promisify(execFile);
 test('FastMCP background hashes survive CLI restart and match independent digests', { timeout: 60000 }, async t => {
   const dir = await mkdtemp(join(tmpdir(), 'durable-fastmcp-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
-  const server = spawn(process.env.FASTMCP_PYTHON ?? 'python3', ['examples/fastmcp/server.py', '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const server = spawn(process.env.FASTMCP_PYTHON ?? 'python3', ['examples/fastmcp/server.py', '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, FASTMCP_DOCKET_URL: 'memory://' } });
   let logs = '', spawnError;
   server.on('error', error => { spawnError = error; });
   server.stdout.on('data', chunk => { logs = (logs + chunk).slice(-20000); });
