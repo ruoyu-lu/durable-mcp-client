@@ -1,14 +1,16 @@
 {
   "name": "durable-mcp-client",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.1",
   "description": "A client-side approach to managing long-running MCP tasks across disconnects and restarts.",
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/build.mjs",
     "check": "tsc --noEmit",
     "test": "npm run build && node --test tests/compatibility/*.test.mjs tests/runtime/*.test.mjs",
     "start": "node dist/cli.js",
     "test:fastmcp": "npm run build && node --test tests/integration/fastmcp.test.mjs",
-    "test:fastmcp:restart": "npm run build && node --test tests/integration/fastmcp-restart.test.mjs"
+    "test:fastmcp:restart": "npm run build && node --test tests/integration/fastmcp-restart.test.mjs",
+    "prepack": "npm run build --silent",
+    "test:package": "node --test tests/packaging/*.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -23,16 +25,30 @@
   },
   "homepage": "https://github.com/ruoyu-lu/durable-mcp-client#readme",
   "dependencies": {
-    "@modelcontextprotocol/client": "2.0.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1"
   },
-  "private": true,
   "engines": {
     "node": ">=22.13.0"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "@modelcontextprotocol/client": "2.0.0"
+  },
+  "bin": {
+    "durable-mcp-client": "bin/durable-mcp-client.js"
+  },
+  "files": [
+    "bin/",
+    "dist/**/*.js",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
   }
 }

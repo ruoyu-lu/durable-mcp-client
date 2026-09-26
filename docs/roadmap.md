@@ -1,12 +1,12 @@
 # Roadmap
 
-Updated 2026-09-25. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
+Updated 2026-09-27. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
 
 ## Baseline — working development CLI (delivered)
 
 PRs #5–#14 provide SQLite task records; submit/list/status/recover/cancel/respond/wait; separate cancellation/input delivery state; deadline and signal handling; server polling hints; and real FastMCP hashing, cancellation and form-input examples. The pinned JSON HTTP path works. The SDK probe still describes its own limitations, not the runtime adapter.
 
-Evidence: `npm run check`, `npm test`, `npm run test:fastmcp`. This is a source-checkout workflow, not a published package or general MCP conformance claim. See the [audit](audits/2026-09-21.md) and [coverage map](validation.md).
+Evidence: `npm run check`, `npm test`, `npm run test:fastmcp`. This delivered the source-checkout baseline. R2 adds an installable artifact; neither establishes registry publication or general MCP conformance. See the [audit](audits/2026-09-21.md) and [coverage map](validation.md).
 
 ## R1 — Reliable recovery (delivered)
 
@@ -18,13 +18,13 @@ Evidence: `npm run check`, `npm test`, `npm run test:fastmcp`. This is a source-
 
 Gate passed: these issues have executable regression evidence and documented limits, including the separate `test:fastmcp:restart` scenario. A restarted server retrieving completed results does not prove arbitrary active jobs resume, nor that Redis survives its own restart. No global coordinator lock is required solely to replace transactional per-key guards; add ownership only for a demonstrated race.
 
-## R2 — Installable CLI alpha (current)
+## R2 — Installable CLI alpha (artifact delivered)
 
 [GitHub milestone](https://github.com/ruoyu-lu/durable-mcp-client/milestone/2), issue #18.
 
-The R1 completion review keeps packaging next: the source workflow now demonstrates recovery, but users still cannot install a runnable artifact. No failing check or new interoperability requirement changes that priority. Deliver a deliberate package file list, CLI bin, build/pack flow, dependency split and clean-directory tarball installation test. Exercise the same command sequence without repository node_modules. Choose CLI-only versus a supported library API explicitly. Review licensing, CLI exit/output contracts and concise limitations; prepare release notes and a tagged alpha.
+Version 0.1.0-alpha.1 provides a CLI-only bin, package-derived version metadata, clean build-on-pack, intentional package contents and production dependency split. A real tarball installs outside the repository and runs without compiler or SDK probe dependencies. License review, output contracts and prepared release notes accompany a tag/manual artifact workflow. Internal modules are not a supported library API.
 
-Gate: a fresh environment installs the artifact and reproduces the demo. R1 gates pass. A public version is only considered released when registry/tag publication is verified. Lack of registry access leaves a tested artifact ready to publish; it is not a reason to spend repeated runs rewriting release documents.
+Artifact gate passed: a fresh environment installs the tarball and reproduces the demo; R1 gates pass. Registry/tag publication is separate and is not claimed here. Use the [release instructions](releases.md) when authorized registry access is available. The completion review keeps R3 demand-driven: select a concrete second server and user workflow before expanding transport/auth support. No new defect or interoperability requirement justifies reopening delivered gates or manufacturing maintenance issues.
 
 ## R3 — Broader interoperability (after alpha, demand-driven)
 

@@ -1,5 +1,6 @@
 name: Build and test
 on:
+  workflow_call:
   push:
     branches: [main]
   pull_request:
@@ -20,6 +21,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
+      - run: npm run test:package
   fastmcp:
     runs-on: ubuntu-latest
     steps:

@@ -8,7 +8,7 @@ The supported baseline is one local user, the pinned modern JSON HTTP contract a
 
 ## Alpha workflow
 
-1. Install the CLI artifact (R2; currently build from source).
+1. Install the built alpha tarball; no source checkout or compiler is needed at runtime. Registry publication is a separate release step.
 2. Submit a task and persist intent before network effects, then its accepted handle.
 3. Exit and restart the client with the same database and endpoint.
 4. Query or wait; distinguish remote status from observation failure.

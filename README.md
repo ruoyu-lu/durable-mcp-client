@@ -34,7 +34,7 @@ flowchart LR
 
 The CLI persists handles and intent before network calls. On restart, `recover` reads SQLite and observes known remote tasks without blindly resubmitting uncertain work.
 
-The example defaults to an in-memory backend; [Redis configuration](examples/fastmcp/README.md#recover-results-after-a-server-restart) enables tested retrieval of completed results after FastMCP restarts. An installable CLI alpha is the [next release gate](docs/roadmap.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
+The example defaults to an in-memory backend; [Redis configuration](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/fastmcp/README.md#recover-results-after-a-server-restart) enables tested retrieval of completed results after FastMCP restarts. The CLI can now be installed from a built alpha tarball; registry/tag publication is tracked separately in the [release instructions](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/releases.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
 
 Server scheduling and execution are delegated to existing runtimes. Here, **durable** refers to client-side task tracking and recovery; it does not promise automatic checkpointing of arbitrary server code or exactly-once external side effects.
 
@@ -42,29 +42,34 @@ Server scheduling and execution are delegated to existing runtimes. Here, **dura
 
 | Document | Contents |
 | --- | --- |
-| [Product scope](docs/product.md) | Use cases, boundaries, and acceptance criteria |
-| [Architecture](docs/architecture.md) | Components, records, recovery, and delivery semantics |
-| [Roadmap](docs/roadmap.md) | Milestones and decision gates |
-| [Validation](docs/validation.md) | Protocol checks and fault-injection scenarios |
-| [Compatibility baseline](docs/compatibility.md) | Pinned Tasks contract and outstanding implementation checks |
-| [Research](docs/research.md) | Upstream references and assumptions to verify |
-| [Current decision](docs/decisions/0002-cli-alpha-and-release-gates.md) | CLI alpha and release gates |
-| [Project review](docs/audits/2026-09-21.md) | Verified progress, gaps and priorities |
-| [Backlog](docs/backlog.md) | Development tasks and progress |
+| [Product scope](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/product.md) | Use cases, boundaries, and acceptance criteria |
+| [Architecture](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/architecture.md) | Components, records, recovery, and delivery semantics |
+| [Roadmap](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/roadmap.md) | Milestones and decision gates |
+| [Validation](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/validation.md) | Protocol checks and fault-injection scenarios |
+| [Compatibility baseline](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/compatibility.md) | Pinned Tasks contract and outstanding implementation checks |
+| [Research](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/research.md) | Upstream references and assumptions to verify |
+| [Current decision](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/decisions/0002-cli-alpha-and-release-gates.md) | CLI alpha and release gates |
+| [Project review](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/audits/2026-09-21.md) | Verified progress, gaps and priorities |
+| [Backlog](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/backlog.md) | Development tasks and progress |
+| [Releases](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/releases.md) | Artifact verification, output contract and publication |
 
-## Run the CLI
+## Install and run the CLI
 
 Requires Node 22.13 or newer. This version uses Node's built-in SQLite, which may emit an experimental-feature warning.
 
 ```sh
 npm ci --ignore-scripts
-npm run build
-node dist/cli.js submit --text "hello after restart" --delay-ms 1000
+npm pack
+npm install --global ./durable-mcp-client-0.1.0-alpha.1.tgz
+durable-mcp-client --version
+durable-mcp-client submit --text "hello after restart" --delay-ms 1000
 # Exit the shell/process if desired. Reuse the same database path.
-node dist/cli.js list
-node dist/cli.js recover
-node dist/cli.js status <task-id>
+durable-mcp-client list
+durable-mcp-client recover
+durable-mcp-client status <task-id>
 ```
+
+The prepared alpha is installed from the built tarball; these instructions do not assume an npm registry release. For source development, run `npm run build` and use `node dist/cli.js` in place of `durable-mcp-client`. The supported interface is the CLI; internal modules are not a supported library API.
 
 Commands return JSON. `--db PATH` selects the SQLite file (default `.runtime/tasks.sqlite`, relative to the current directory). Use the same absolute path when running from different directories. `status` refreshes one task; `recover` refreshes unfinished tasks once and exits. Unknown submissions are retained without automatic resubmission. Query errors are recorded separately from remote task status. Invalid adapter snapshots preserve the last valid state and are reported as observation errors. Once a terminal snapshot is saved, later observations and query errors cannot modify the record.
 
@@ -73,19 +78,19 @@ The included `demo-v1` adapter is a deterministic mock: its handle encodes a rea
 ## MCP HTTP endpoint
 
 ```sh
-node dist/cli.js submit --server http://localhost:8000/mcp --tool batch --arguments '{"count":2}'
-node dist/cli.js recover --server http://localhost:8000/mcp
-node dist/cli.js status <task-id> --server http://localhost:8000/mcp
+durable-mcp-client submit --server http://localhost:8000/mcp --tool batch --arguments '{"count":2}'
+durable-mcp-client recover --server http://localhost:8000/mcp
+durable-mcp-client status <task-id> --server http://localhost:8000/mcp
 ```
 
 Reuse the same endpoint and database after restart. The adapter binds records to the endpoint, discovers support for protocol `2026-07-28` and the Tasks extension, then calls `tools/call` and `tasks/get`. Accepted handles are saved before reading task state; the initial snapshot is null until queried. Direct tool results are stored as completed records with a local handle.
 
-This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
+This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
 
 ## Wait for a task
 
 ```sh
-node dist/cli.js wait <task-id> --server http://localhost:8000/mcp --interval-ms 1000 --timeout-ms 60000
+durable-mcp-client wait <task-id> --server http://localhost:8000/mcp --interval-ms 1000 --timeout-ms 60000
 ```
 
 `wait` returns `{ "reason": "...", "task": { ... } }`. Reasons are `terminal`, `input_required`, `unknown_submission`, or `timeout`; a signal interruption returns `interrupted`. A timeout exits with code 2; SIGINT (Ctrl+C) exits with code 130 and SIGTERM with 143; other outcomes exit with code 0, so inspect the task status to distinguish completion from failure or cancellation. Both options accept integer milliseconds from 1 to 86400000. Omit `--server` for demo tasks.
@@ -99,8 +104,8 @@ When a task reports `input_required`, `status` and `recover` retain its request 
 These requests are displayed as data only. The client does not execute server-requested actions or submit answers automatically. Use `respond` to send a response object for one displayed request key:
 
 ```sh
-node dist/cli.js respond <task-id> --server http://localhost:8000/mcp --request-key choice --response '{"action":"accept","content":{"label":"chosen"}}'
-node dist/cli.js status <task-id> --server http://localhost:8000/mcp
+durable-mcp-client respond <task-id> --server http://localhost:8000/mcp --request-key choice --response '{"action":"accept","content":{"label":"chosen"}}'
+durable-mcp-client status <task-id> --server http://localhost:8000/mcp
 ```
 
 Inspect the request and supply the response explicitly. Before sending, `respond` refreshes the task and validates the outstanding key inside the reservation transaction. Form elicitation checks the action, flat content and supplied JSON Schema (draft 2020-12 by default, or explicitly declared draft-07), including formats. Unsupported schemas fail locally; no remote schema fetching, coercion or defaults are applied. Invalid forms leave the key unreserved, so correct the response and run `respond` again. Other input methods receive plain-JSON checks only.
@@ -114,8 +119,8 @@ The response flow is covered by loopback HTTP/process-restart tests, controlled-
 ## Cancel a remote task
 
 ```sh
-node dist/cli.js cancel <task-id> --server http://localhost:8000/mcp
-node dist/cli.js status <task-id> --server http://localhost:8000/mcp
+durable-mcp-client cancel <task-id> --server http://localhost:8000/mcp
+durable-mcp-client status <task-id> --server http://localhost:8000/mcp
 ```
 
 Cancellation intent is persisted before sending `tasks/cancel`. The returned record's `cancellation.outcome` is `acknowledged` when the server acknowledges the request, or `unknown` if it fails or the response cannot be validated. A crash can leave `pending`; that does not prove whether the request reached the server. These values are separate from the task's observed status: only a query can confirm `cancelled`, and work may complete before cancellation takes effect.
@@ -131,9 +136,10 @@ Cancellation intent is persisted before sending `tasks/cancel`. The returned rec
 ```sh
 npm run check
 npm test
+npm run test:package
 ```
 
-Tests compile the TypeScript runtime and cover separate-process CLI recovery, persistent handles, unknown submissions, observation failures and terminal-state preservation. Additional SDK probes characterize known compatibility gaps. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [compatibility baseline](docs/compatibility.md).
+Tests compile the TypeScript runtime and cover separate-process CLI recovery, persistent handles, unknown submissions, observation failures and terminal-state preservation. Additional SDK probes characterize known compatibility gaps. See [CONTRIBUTING.md](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/CONTRIBUTING.md) and the [compatibility baseline](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/compatibility.md).
 
 ## License
 

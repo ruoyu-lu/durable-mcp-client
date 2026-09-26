@@ -1,0 +1,40 @@
+name: CLI alpha artifact
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/compatibility.yml
+  artifact:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Check tag matches package version
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `v${pkg.version}`) {
+            throw new Error('Tag must match package.json version');
+          }
+          JS
+      - run: npm ci --ignore-scripts
+      - name: Build tarball and checksum
+        run: |
+          mkdir -p "$RUNNER_TEMP/cli-alpha"
+          npm pack --pack-destination "$RUNNER_TEMP/cli-alpha"
+          cd "$RUNNER_TEMP/cli-alpha"
+          sha256sum *.tgz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-alpha
+          path: ${{ runner.temp }}/cli-alpha/
+          if-no-files-found: error
