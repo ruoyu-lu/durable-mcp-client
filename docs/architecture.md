@@ -8,7 +8,10 @@ CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP FastMCP endpoint
           TaskStore (SQLite WAL / immediate transactions)
 ```
 
-- `src/cli.ts`: explicit commands, JSON output, wait deadlines and signal teardown.
+- `bin/durable-mcp-client.js`: installed entry point and minimum-Node guard before importing SQLite.
+- `src/cli.ts`: help/version, explicit commands, JSON output, wait deadlines and signal teardown.
+- `src/version.ts`: shared package version for CLI output and MCP client metadata.
+- `scripts/build.mjs`: clean compilation used by the prepack hook; no runtime build or supported library API.
 - `src/coordinator.ts`: submission, observation, cancellation, input responses and bounded wait. It never runs remote jobs.
 - `src/store.ts`: one JSON TaskRecord per SQLite row; transactional updates and per-input-key reservation. No schema-version migration mechanism yet.
 - `src/input.ts` and `src/errors.ts`: local form validation and structured failures, including adapter-proven input rejection.

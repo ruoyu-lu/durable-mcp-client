@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { clientInfo } from './version.js';
 import { parseArgs } from 'node:util';
 import { TaskStore } from './store.js';
 import { TaskCoordinator } from './coordinator.js';
@@ -6,14 +7,15 @@ import { HttpTaskAdapter } from './adapters/http.js';
 import { DemoAdapter } from './adapters/demo.js';
 
 const usage = `Durable MCP Client
-Usage: node dist/cli.js <submit|status|list|recover|cancel|respond|wait> [task-id] [options]
+Usage: durable-mcp-client <submit|status|list|recover|cancel|respond|wait> [task-id] [options]
   --db PATH       SQLite database (default: .runtime/tasks.sqlite)
   --text TEXT     Demo result for submit
   --delay-ms N    Demo readiness delay, 0..86400000 (default: 1000)
   --interval-ms N  Wait polling interval (default: 1000)
   --timeout-ms N   Wait deadline (default: 60000)
   --help          Show help
-  --server URL    Use a modern MCP JSON HTTP endpoint (also required for status/recover/cancel)
+  --version       Show the installed version
+  --server URL    Use a modern MCP JSON HTTP endpoint (reuse for status/recover/cancel/respond/wait)
   --request-key KEY  Outstanding input request key for respond
   --response JSON    Explicit response object for respond
   --tool NAME     Remote tool for submit
@@ -27,7 +29,9 @@ async function main(): Promise<void> {
     db: { type: 'string', default: '.runtime/tasks.sqlite' },
     text: { type: 'string' }, 'delay-ms': { type: 'string', default: '1000' },
     help: { type: 'boolean', default: false },
+    version: { type: 'boolean', default: false },
   } });
+  if (values.version) { console.log(clientInfo.version); return; }
   if (values.help) { console.log(usage); return; }
   const [command, id] = positionals;
   if (!command || !['submit', 'status', 'list', 'recover', 'cancel', 'respond', 'wait'].includes(command)) throw new Error(usage);

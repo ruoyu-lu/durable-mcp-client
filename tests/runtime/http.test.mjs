@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { HttpTaskAdapter } from '../../dist/adapters/http.js';
 const exec = promisify(execFile);
+const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
 
 async function fixture(t, respond) {
   const calls = [];
@@ -15,6 +16,7 @@ async function fixture(t, respond) {
     let text = ''; for await (const chunk of req) text += chunk;
     const body = JSON.parse(text); calls.push(body);
     assert.equal(req.headers['mcp-method'], body.method);
+    assert.deepEqual(body.params._meta['io.modelcontextprotocol/clientInfo'], { name: manifest.name, version: manifest.version });
     assert.equal(req.headers['mcp-protocol-version'], '2026-07-28');
     assert.deepEqual(body.params._meta['io.modelcontextprotocol/clientCapabilities'].extensions, { 'io.modelcontextprotocol/tasks': {} });
     if (body.method !== 'server/discover') assert.equal(req.headers['mcp-name'], body.params.name ?? body.params.taskId);

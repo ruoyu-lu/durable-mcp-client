@@ -1,6 +1,6 @@
 # Backlog
 
-Updated 2026-09-25. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
+Updated 2026-09-27. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
 
 ## Delivered: R1 — Reliable recovery
 
@@ -8,9 +8,13 @@ Updated 2026-09-25. Ordered queue for the [roadmap](roadmap.md); GitHub issues h
 - [x] [#16 Rejected versus uncertain input delivery](https://github.com/ruoyu-lu/durable-mcp-client/issues/16) — form preflight, structured errors, proven-rejection correction and concurrency/reopen regressions pass; generic HTTP failures remain unknown.
 - [x] [#17 Redis-backed server restart](https://github.com/ruoyu-lu/durable-mcp-client/issues/17) — uncached remote result recovered after FastMCP SIGKILL/restart; original handle and one submission verified with Redis kept running.
 
-## Current: R2 — Installable CLI alpha
+## Delivered: R2 — Installable CLI artifact
 
-- [ ] [#18 Package and clean installation](https://github.com/ruoyu-lu/durable-mcp-client/issues/18) — next implementation: bin, dist, intended files, dependency split, artifact smoke test and release readiness.
+- [x] [#18 Package and clean installation](https://github.com/ruoyu-lu/durable-mcp-client/issues/18) — CLI entry point, shared version, clean pack hook, production dependency split, real outside-repository install test, license review and prepared release workflow.
+
+## Next: R3 — Concrete interoperability workflow
+
+Select a real second server/user workflow before opening its implementation issue. Authentication, SSE and host integration are not blanket prerequisites. Registry publication remains a separate release operation requiring authorized access; keep the verified artifact available rather than repeating release-document changes.
 
 ## Delivered baseline
 

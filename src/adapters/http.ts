@@ -1,3 +1,4 @@
+import { clientInfo } from '../version.js';
 import { AdapterError } from '../errors.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { validPollInterval } from '../types.js';
@@ -33,7 +34,7 @@ export class HttpTaskAdapter implements TaskAdapter {
           'Mcp-Protocol-Version': version, 'Mcp-Method': method, ...(name ? { 'Mcp-Name': name } : {}) },
         body: JSON.stringify({ jsonrpc: '2.0', id, method, params: { ...params, _meta: {
           'io.modelcontextprotocol/protocolVersion': version,
-          'io.modelcontextprotocol/clientInfo': { name: 'durable-mcp-client', version: '0.0.0' },
+          'io.modelcontextprotocol/clientInfo': clientInfo,
           'io.modelcontextprotocol/clientCapabilities': { extensions: { [extension]: {} } },
         } } }),
       });
