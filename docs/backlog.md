@@ -1,6 +1,6 @@
 # Backlog
 
-Updated 2026-09-27. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
+Updated 2026-09-28. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
 
 ## Delivered: R1 — Reliable recovery
 
@@ -12,9 +12,15 @@ Updated 2026-09-27. Ordered queue for the [roadmap](roadmap.md); GitHub issues h
 
 - [x] [#18 Package and clean installation](https://github.com/ruoyu-lu/durable-mcp-client/issues/18) — CLI entry point, shared version, clean pack hook, production dependency split, real outside-repository install test, license review and prepared release workflow.
 
-## Next: R3 — Concrete interoperability workflow
+## Delivered: R3 — Concrete interoperability workflow
 
-Select a real second server/user workflow before opening its implementation issue. Authentication, SSE and host integration are not blanket prerequisites. Registry publication remains a separate release operation requiring authorized access; keep the verified artifact available rather than repeating release-document changes.
+- [x] Local file-manifest server using the published mcp-durable-tasks 0.2.1 lifecycle and TypeScript SDK 2.0.0; real checksums, progress persistence, independent-process recovery, no-resubmission evidence and cancellation.
+
+## Next: R4 — Bounded host feasibility decision
+
+Probe one pinned host's raw Tasks access, durable session/task association and result-delivery acknowledgment before deciding whether an adapter adds user value. Do not start an outbox or host fork without those seams. If unavailable, preserve the standalone CLI and report a concrete missing contract; further interoperability requires a specific workflow.
+
+Registry publication remains a separate operation requiring authorized access. Keep the verified artifact available; do not repeat release-document changes or add blanket authentication/SSE work.
 
 ## Delivered baseline
 

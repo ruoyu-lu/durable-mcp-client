@@ -16,7 +16,8 @@ Long-running agent tasks often outlive a CLI process or network connection. I bu
 - Persistent task records scoped to an adapter and endpoint.
 - Submission uncertainty and observation failures kept separate from remote status.
 - Durable cancellation/input attempts with duplicate-response guards.
-- Wait deadlines, server polling hints and local signal interruption.
+- Wait deadlines, server polling hints, saved progress messages and local signal interruption.
+- A second-runtime [local file manifest example](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/file-manifest/README.md) with streamed SHA-256 hashing and cancellation.
 - FastMCP examples covering batch hashing, cancellation, background form input and Redis-backed result retrieval after server restart.
 
 ## Architecture
@@ -26,7 +27,7 @@ flowchart LR
     User[Operator / CLI] --> Coordinator[Task coordinator]
     Coordinator <--> DB[(SQLite task records)]
     Coordinator --> Adapter[JSON HTTP adapter]
-    Adapter --> Server[FastMCP / Docket task server]
+    Adapter --> Server[FastMCP or file-manifest task server]
     Server --> Adapter
     Adapter --> Coordinator
     Coordinator --> User
@@ -34,7 +35,7 @@ flowchart LR
 
 The CLI persists handles and intent before network calls. On restart, `recover` reads SQLite and observes known remote tasks without blindly resubmitting uncertain work.
 
-The example defaults to an in-memory backend; [Redis configuration](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/fastmcp/README.md#recover-results-after-a-server-restart) enables tested retrieval of completed results after FastMCP restarts. The CLI can now be installed from a built alpha tarball; registry/tag publication is tracked separately in the [release instructions](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/releases.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
+The FastMCP example defaults to an in-memory backend; [Redis configuration](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/fastmcp/README.md#recover-results-after-a-server-restart) enables tested retrieval of completed results after FastMCP restarts. The CLI can now be installed from a built alpha tarball; registry/tag publication is tracked separately in the [release instructions](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/releases.md). Authentication, caller/session identity, host adapters and result outbox are not implemented.
 
 Server scheduling and execution are delegated to existing runtimes. Here, **durable** refers to client-side task tracking and recovery; it does not promise automatic checkpointing of arbitrary server code or exactly-once external side effects.
 
@@ -83,9 +84,9 @@ durable-mcp-client recover --server http://localhost:8000/mcp
 durable-mcp-client status <task-id> --server http://localhost:8000/mcp
 ```
 
-Reuse the same endpoint and database after restart. The adapter binds records to the endpoint, discovers support for protocol `2026-07-28` and the Tasks extension, then calls `tools/call` and `tasks/get`. Accepted handles are saved before reading task state; the initial snapshot is null until queried. Direct tool results are stored as completed records with a local handle.
+Reuse the same endpoint and database after restart. The adapter binds records to the endpoint, discovers support for protocol `2026-07-28` and the Tasks extension, then calls `tools/call` and `tasks/get`. String `statusMessage` values from task queries are retained as advisory progress data in snapshots; malformed non-string messages are ignored. Accepted handles are saved before reading task state; the initial snapshot is null until queried. Direct tool results are stored as completed records with a local handle.
 
-This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/fastmcp/README.md) and an optional real-server integration test. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
+This small HTTP shim bypasses the pinned SDK's unsupported Tasks methods. Loopback integration tests verify real HTTP and separate CLI processes; FastMCP 4.0.3 interoperability is covered by the [background hashing example](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/fastmcp/README.md) and a real-server integration test. The [file manifest example](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/examples/file-manifest/README.md) also verifies the independent `mcp-durable-tasks` 0.2.1 lifecycle through the TypeScript server SDK. Only JSON responses are supported, with a 30-second request timeout and no automatic submission retry. SSE, authentication, legacy negotiation are not supported. Endpoint URLs cannot contain credentials, query parameters or fragments. A failed observation preserves the handle for the next query.
 
 ## Wait for a task
 
@@ -129,7 +130,7 @@ Cancellation intent is persisted before sending `tasks/cancel`. The returned rec
 
 ## Tests and CI
 
-`npm run check` validates the TypeScript build and static checks; `npm test` covers persistence, separate-process recovery, uncertain submissions, observation errors, terminal-state preservation, cancellation and input responses. The [Build and test workflow](https://github.com/ruoyu-lu/durable-mcp-client/actions/workflows/compatibility.yml) runs the checks on Node 22.13 and 24 and exercises FastMCP interoperability. The badge above reflects that workflow's live status.
+`npm run check` validates the TypeScript build and static checks; `npm test` covers persistence, separate-process recovery, uncertain submissions, observation errors, terminal-state preservation, cancellation and input responses. The [Build and test workflow](https://github.com/ruoyu-lu/durable-mcp-client/actions/workflows/compatibility.yml) runs the checks on Node 22.13 and 24 and exercises both FastMCP and file-manifest interoperability. The badge above reflects that workflow's live status.
 
 ## Development
 
@@ -137,6 +138,7 @@ Cancellation intent is persisted before sending `tasks/cancel`. The returned rec
 npm run check
 npm test
 npm run test:package
+npm run test:manifest
 ```
 
 Tests compile the TypeScript runtime and cover separate-process CLI recovery, persistent handles, unknown submissions, observation failures and terminal-state preservation. Additional SDK probes characterize known compatibility gaps. See [CONTRIBUTING.md](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/CONTRIBUTING.md) and the [compatibility baseline](https://github.com/ruoyu-lu/durable-mcp-client/blob/main/docs/compatibility.md).

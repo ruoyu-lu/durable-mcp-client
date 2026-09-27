@@ -116,7 +116,8 @@ export class HttpTaskAdapter implements TaskAdapter {
         if ('params' in entry) object(entry.params);
       }
     }
-    return { ...(validPollInterval(result.pollIntervalMs) ? { pollIntervalMs: result.pollIntervalMs } : {}), ...(inputRequests ? { inputRequests } : {}), status: result.status, ...(result.status === 'completed' ? { result: result.result } : {}),
+    return { ...(typeof result.statusMessage === 'string' ? { statusMessage: result.statusMessage } : {}),
+      ...(validPollInterval(result.pollIntervalMs) ? { pollIntervalMs: result.pollIntervalMs } : {}), ...(inputRequests ? { inputRequests } : {}), status: result.status, ...(result.status === 'completed' ? { result: result.result } : {}),
       ...(result.status === 'failed' ? { error: JSON.stringify(result.error) } : {}) };
   }
 }

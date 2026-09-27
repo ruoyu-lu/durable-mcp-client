@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Preserve advisory server progress messages in durable task snapshots.
+- Add a real local file-manifest workflow using a second Tasks runtime, with client-restart recovery and cooperative cancellation.
+
 ## 0.1.0-alpha.1 — prepared for release
 
 - Installable standalone `durable-mcp-client` command with help, version output and a Node 22.13+ check.

@@ -40,7 +40,7 @@ test('built tarball installs and runs independently with production dependencies
   assert.equal(installed.version, manifest.version);
   assert.deepEqual(installed.bin, { 'durable-mcp-client': 'bin/durable-mcp-client.js' });
   assert.equal(installed.dependencies['@modelcontextprotocol/client'], undefined);
-  for (const omitted of ['typescript', '@types/node', '@modelcontextprotocol/client']) {
+  for (const omitted of ['typescript', '@types/node', '@modelcontextprotocol/client', '@modelcontextprotocol/server', '@modelcontextprotocol/node', 'mcp-durable-tasks', 'zod']) {
     await assert.rejects(access(join(install, 'node_modules', omitted)), { code: 'ENOENT' });
   }
   const bin = join(install, 'node_modules', '.bin', 'durable-mcp-client');
