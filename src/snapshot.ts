@@ -17,6 +17,9 @@ export function assertSnapshot(value: unknown): asserts value is Snapshot {
     || !['working', 'input_required', 'completed', 'failed', 'cancelled'].includes(value.status)) {
     throw new Error('Task snapshot has an unsupported status');
   }
+  if (Object.hasOwn(value, 'statusMessage') && typeof value.statusMessage !== 'string') {
+    throw new Error('Task snapshot statusMessage must be a string');
+  }
   if (value.status === 'completed' && !Object.hasOwn(value, 'result')) {
     throw new Error('Completed task snapshot requires a result');
   }

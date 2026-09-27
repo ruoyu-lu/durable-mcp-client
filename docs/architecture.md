@@ -3,7 +3,7 @@
 ## Implemented path
 
 ```text
-CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP FastMCP endpoint
+CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP Tasks endpoint
               |
           TaskStore (SQLite WAL / immediate transactions)
 ```
@@ -16,12 +16,13 @@ CLI -> TaskCoordinator -> TaskAdapter -> JSON HTTP FastMCP endpoint
 - `src/store.ts`: one JSON TaskRecord per SQLite row; transactional updates and per-input-key reservation. No schema-version migration mechanism yet.
 - `src/input.ts` and `src/errors.ts`: local form validation and structured failures, including adapter-proven input rejection.
 - `src/snapshot.ts`: normalized snapshot validation for supported statuses, required payloads and optional metadata before persistence.
-- `src/adapters/http.ts`: replaceable fetch shim pinned to 2026-07-28 because the tested SDK public Client path rejects Tasks. The SDK is currently used in compatibility tests, not runtime calls.
+- `src/adapters/http.ts`: replaceable fetch shim pinned to 2026-07-28 because the tested SDK public Client path rejects Tasks. The SDK is used in compatibility tests and the file-manifest server example, not client runtime calls.
 - `examples/fastmcp/server.py`: independent FastMCP/Docket process with batch hashing and form input. TasksExtension reads FASTMCP_DOCKET_URL/NAME; memory is the default, Redis enables completed-result retrieval after server restart.
+- `examples/file-manifest/server.mjs`: independent TypeScript SDK / mcp-durable-tasks server for bounded-chunk SHA-256 hashing; its in-memory task state survives client exit, not server exit.
 
 ## Stored state
 
-TaskRecord contains local ID, adapter/endpoint hash, input, accepted remote ID, submission state, latest snapshot, observation error and timestamps. Optional cancellation attempts distinguish pending/acknowledged/unknown delivery. Input history also supports proven rejection, unique attempt IDs and non-acceptance evidence; structured failure details supplement existing error strings. There are no caller/session IDs, credential references or delivery outbox.
+TaskRecord contains local ID, adapter/endpoint hash, input, accepted remote ID, submission state, latest snapshot (including optional server progress text), observation error and timestamps. Optional cancellation attempts distinguish pending/acknowledged/unknown delivery. Input history also supports proven rejection, unique attempt IDs and non-acceptance evidence; structured failure details supplement existing error strings. There are no caller/session IDs, credential references or delivery outbox.
 
 The handle is committed before the initial snapshot is persisted. Malformed payloads must not discard a known handle. Remote lifecycle, local reachability and cancellation/input delivery outcomes are separate. New observations validate their status and required payloads inside the transaction; invalid observations roll back. Terminal snapshots resist both later snapshot writes and late observation errors without changing timestamps or writing to SQLite. Existing valid records remain readable without migration.
 

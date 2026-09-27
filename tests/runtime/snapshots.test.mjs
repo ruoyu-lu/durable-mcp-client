@@ -21,6 +21,7 @@ const invalidSnapshots = [
   { status: 'input_required', inputRequests: { key: null } },
   { status: 'input_required', inputRequests: { key: { method: '' } } },
   { status: 'input_required', inputRequests: { key: { method: 'elicitation/create', params: [] } } },
+  { status: 'working', statusMessage: 123 }, { status: 'working', statusMessage: null },
   { status: 'working', pollIntervalMs: -1 }, { status: 'working', pollIntervalMs: 1.5 },
   { status: 'working', pollIntervalMs: Number.MAX_SAFE_INTEGER + 1 },
   { status: 'working', pollIntervalMs: '100' }, { status: 'working', error: 123 },

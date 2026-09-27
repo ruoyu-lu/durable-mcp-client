@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated 2026-09-27. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
+Updated 2026-09-28. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
 
 ## Baseline — working development CLI (delivered)
 
@@ -24,13 +24,15 @@ Gate passed: these issues have executable regression evidence and documented lim
 
 Version 0.1.0-alpha.1 provides a CLI-only bin, package-derived version metadata, clean build-on-pack, intentional package contents and production dependency split. A real tarball installs outside the repository and runs without compiler or SDK probe dependencies. License review, output contracts and prepared release notes accompany a tag/manual artifact workflow. Internal modules are not a supported library API.
 
-Artifact gate passed: a fresh environment installs the tarball and reproduces the demo; R1 gates pass. Registry/tag publication is separate and is not claimed here. Use the [release instructions](releases.md) when authorized registry access is available. The completion review keeps R3 demand-driven: select a concrete second server and user workflow before expanding transport/auth support. No new defect or interoperability requirement justifies reopening delivered gates or manufacturing maintenance issues.
+Artifact gate passed: a fresh environment installs the tarball and reproduces the demo; R1 gates pass. Registry/tag publication is separate and is not claimed here. Use the [release instructions](releases.md) when authorized registry access is available. R3 applies the same evidence-led approach to the concrete second-server workflow below. No new defect justifies reopening the delivered R1/R2 gates.
 
-## R3 — Broader interoperability (after alpha, demand-driven)
+## R3 — Concrete second-server workflow (delivered)
 
-Choose a concrete second server/use case before adding authentication, principal-scoped identity, SSE, legacy negotiation, expiry classification or rate-limit/backoff policy. Preserve structured errors while implementing R1 so these remain replaceable adapter work. Expand only the required transport/auth combination and test it end-to-end.
+The local file-manifest example uses `mcp-durable-tasks` 0.2.1 and TypeScript server/node SDK 2.0.0. It streams SHA-256 checksums for explicit files, reports progress and honors cooperative cancellation. The client retains advisory `statusMessage` text and resumes observation from independent CLI processes.
 
-Gate: an additional documented user workflow works without weakening submission/input uncertainty rules. No universal-compatibility claim.
+Gate passed: real file digests match independent hashes; an uncached result is retrieved under the original handle; a proxy verifies one submission per job. Working progress survives client reopen and cancellation is confirmed by a later query. The second server uses memory storage and stays running; this adds no server-crash guarantee. Authentication, SSE and legacy negotiation remain demand-driven, not prerequisites. See the [example](../examples/file-manifest/README.md) and [coverage](validation.md).
+
+The completion review found no need to expand transport/auth for this workflow. Both server integrations and package checks remain the regression gates. Further interoperability work requires another concrete need; next is a bounded R4 feasibility decision, not automatic host-adapter development.
 
 ## R4 — Optional agent-host integration
 

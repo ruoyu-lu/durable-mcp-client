@@ -2,6 +2,8 @@ import type { FailureDetails } from './errors.js';
 export type RemoteStatus = 'working' | 'input_required' | 'completed' | 'failed' | 'cancelled';
 export interface Snapshot {
   status: RemoteStatus;
+  /** Advisory server progress text, retained as data. */
+  statusMessage?: string;
   /** Plain JSON data; validated before persistence. */
   result?: unknown;
   error?: string;

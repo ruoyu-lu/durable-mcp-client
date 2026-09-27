@@ -21,6 +21,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
+      - run: npm run test:manifest
       - run: npm run test:package
   fastmcp:
     runs-on: ubuntu-latest
