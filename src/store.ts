@@ -6,14 +6,21 @@ import { assertSnapshot } from './snapshot.js';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { closeSync, mkdirSync, openSync } from 'node:fs';
 import { isTerminal } from './types.js';
 import type { Snapshot, TaskRecord } from './types.js';
 
 export class TaskStore {
   private readonly db: DatabaseSync;
   constructor(path: string) {
-    if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+    if (path !== ':memory:' && path !== '') {
+      mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+      // SQLite otherwise creates 0644 files under a typical umask. Reserve a
+      // new file privately; its WAL inherits the database permissions. Never
+      // truncate or change permissions on an existing user-managed database.
+      try { closeSync(openSync(path, 'wx', 0o600)); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
+    }
     this.db = new DatabaseSync(path);
     this.db.exec(`
       PRAGMA busy_timeout = 5000;
