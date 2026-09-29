@@ -1,6 +1,6 @@
 # Backlog
 
-Updated 2026-09-28. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
+Updated 2026-09-29. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
 
 ## Delivered: R1 — Reliable recovery
 
@@ -16,11 +16,19 @@ Updated 2026-09-28. Ordered queue for the [roadmap](roadmap.md); GitHub issues h
 
 - [x] Local file-manifest server using the published mcp-durable-tasks 0.2.1 lifecycle and TypeScript SDK 2.0.0; real checksums, progress persistence, independent-process recovery, no-resubmission evidence and cancellation.
 
-## Next: R4 — Bounded host feasibility decision
+## Current: standalone CLI maintenance
 
-Probe one pinned host's raw Tasks access, durable session/task association and result-delivery acknowledgment before deciding whether an adapter adds user value. Do not start an outbox or host fork without those seams. If unavailable, preserve the standalone CLI and report a concrete missing contract; further interoperability requires a specific workflow.
+R1–R3 acceptance work is delivered and there is no remaining mandatory alpha implementation gate. Inspect existing work and reproduce reported or inspection-discovered correctness/installability regressions before selecting new features. A new interoperability feature needs a concrete user/server workflow; do not manufacture issues or convenience features to fill a daily run.
 
-Registry publication remains a separate operation requiring authorized access. Keep the verified artifact available; do not repeat release-document changes or add blanket authentication/SSE work.
+Registry publication remains separate and requires authorized access. Keep the verified artifact available; do not repeat release-document changes or add blanket authentication/SSE work.
+
+## Deferred: R4 — Host adapter after a concrete delivery contract
+
+- [x] One bounded source/runtime investigation: [Harness 0.2.0-rc.1 evidence](../tests/probes/harness/README.md).
+- [ ] A concrete host workflow and shutdown-safe, persist-before-ack delivery contract, including historical deduplication and input presentation.
+- [ ] Runnable adapter acceptance across host restart; only then add outbox/continuation behavior.
+
+The existing bridge lacks Tasks handling. JSONL supports built-in inbox crash recovery, but direct custom association events fail restore and normal disposal cancels queued input; an enqueue receipt is insufficient for the proposed delivery guarantee. This is a deferred integration boundary, not a blocker for the standalone CLI. Re-probe only for a specific workflow or relevant host contract/version change.
 
 ## Delivered baseline
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated 2026-09-28. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
+Updated 2026-09-29. This replaces the original M0–M4 sequence; milestones are evidence gates, not dates. The target is a reliable, installable standalone CLI alpha. Host integration is optional follow-up.
 
 ## Baseline — working development CLI (delivered)
 
@@ -32,13 +32,17 @@ The local file-manifest example uses `mcp-durable-tasks` 0.2.1 and TypeScript se
 
 Gate passed: real file digests match independent hashes; an uncached result is retrieved under the original handle; a proxy verifies one submission per job. Working progress survives client reopen and cancellation is confirmed by a later query. The second server uses memory storage and stays running; this adds no server-crash guarantee. Authentication, SSE and legacy negotiation remain demand-driven, not prerequisites. See the [example](../examples/file-manifest/README.md) and [coverage](validation.md).
 
-The completion review found no need to expand transport/auth for this workflow. Both server integrations and package checks remain the regression gates. Further interoperability work requires another concrete need; next is a bounded R4 feasibility decision, not automatic host-adapter development.
+The completion review found no need to expand transport/auth for this workflow. Both server integrations and package checks remain the regression gates. Further interoperability work requires another concrete need. The bounded R4 feasibility decision below follows that completion review.
 
-## R4 — Optional agent-host integration
+## R4 — Optional agent-host integration (deferred)
 
-Timebox one source/prototype investigation against a pinned host version. Harness is a candidate, not a prerequisite. Verify raw Tasks access, durable task/session association, input presentation and an idempotent delivery/acknowledgment contract. Implement outbox and continuation only after those seams exist.
+The bounded Harness investigation is complete; the integration gate is not. [Published-package probes](../tests/probes/harness/README.md) pin `0.2.0-rc.1` and distinguish a real SIGKILL from normal disposal. Built-in pending input survives a JSONL flush and process kill. Directly appended custom task/session events flush successfully but cause restore to reject the session as an unknown event type. Normal disposal instead records cancellation and clears pending input. Built-in MCP tools reject required Tasks and lose an injected optional task handle; pending-message IDs alone do not provide historical delivery deduplication.
 
-Gate: a real session survives host restart and receives a result under a tested delivery contract. If the seam is absent, retain the CLI and record the bounded finding; do not maintain an unbounded fork or repeatedly research it.
+These are partial seams, not an acknowledged result-delivery contract. A custom CLI-backed adapter is possible, but an outbox and continuation layer would need an explicit policy for supported association storage, shutdown cancellation, persisted receipts, duplicates and generated input. Input presentation and model continuation have not been verified. Without a concrete host workflow, adding that subsystem would expand maintenance before establishing user value.
+
+Keep the standalone CLI as the supported path. Revisit only for a specific host workflow or a relevant host contract/version change, not on every daily run. Do not start an unbounded host fork.
+
+Future gate: a real host session survives both abrupt and normal restart, receives a remote result under a documented acknowledgment/deduplication contract, and presents input without replaying uncertain work. The current probe does not pass that gate.
 
 ## Selection and maintenance
 
