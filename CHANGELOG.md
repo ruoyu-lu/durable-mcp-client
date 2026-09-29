@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Create new SQLite task databases with owner-only POSIX permissions, including their WAL sidecars.
+
 - Preserve advisory server progress messages in durable task snapshots.
 - Add a real local file-manifest workflow using a second Tasks runtime, with client-restart recovery and cooperative cancellation.
 
