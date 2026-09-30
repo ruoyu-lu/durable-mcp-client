@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reject blank CLI tool names and non-object arguments before creating submission records.
+
 - Create new SQLite task databases with owner-only POSIX permissions, including their WAL sidecars.
 
 - Preserve advisory server progress messages in durable task snapshots.

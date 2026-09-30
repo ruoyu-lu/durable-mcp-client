@@ -42,7 +42,12 @@ async function main(): Promise<void> {
   }
   const adapter = values.server ? new HttpTaskAdapter(values.server) : new DemoAdapter();
   const input = values.server ? { name: values.tool, arguments: JSON.parse(values.arguments) } : { text: values.text, delayMs };
-  if (command === 'submit' && values.server && !values.tool) throw new Error('--server submit requires --tool');
+  if (command === 'submit' && values.server) {
+    if (!values.tool?.trim()) throw new Error('--server submit requires a non-empty --tool');
+    if (input.arguments === null || typeof input.arguments !== 'object' || Array.isArray(input.arguments)) {
+      throw new Error('--arguments must be a JSON object');
+    }
+  }
   if (command === 'respond' && (values['request-key'] === undefined || values.response === undefined)) throw new Error('respond requires --request-key and --response');
   const response = command === 'respond' ? JSON.parse(values.response!) : undefined;
   const store = new TaskStore(values.db);
