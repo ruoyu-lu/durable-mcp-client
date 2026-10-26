@@ -251,3 +251,26 @@ for (const mode of ['lost', 'protocol']) {
     } finally { store.close(); }
   });
 }
+
+for (const draft of ['http://json-schema.org/draft-07/schema#', 'https://json-schema.org/draft/2020-12/schema']) {
+  test(`form schema references preserve preflight delivery guards: ${draft}`, async t => {
+    const store = new TaskStore(database(t)); t.after(() => store.close());
+    const schema = { $schema: draft, $id: 'https://example.test/forms/label', type: 'object',
+      definitions: { label: { type: 'string', minLength: 3 } },
+      properties: { label: { $ref: '#/definitions/label' } }, required: ['label'] };
+    const snapshot = { status: 'input_required', inputRequests: { key: {
+      method: 'elicitation/create', params: { requestedSchema: schema },
+    } } };
+    const task = store.create('input', {});
+    store.accept(task.id, 'remote', snapshot);
+    let sends = 0;
+    const coordinator = new TaskCoordinator(store, { name: 'input', query: async () => snapshot,
+      respond: async () => { sends++; } });
+    await assert.rejects(coordinator.respond(task.id, 'key', { action: 'accept', content: { label: 'x' } }), /Invalid form content/);
+    assert.equal(sends, 0);
+    assert.equal(store.get(task.id).inputResponses, undefined);
+    const result = await coordinator.respond(task.id, 'key', answer);
+    assert.equal(result.inputResponses[0].outcome, 'acknowledged');
+    assert.equal(sends, 1);
+  });
+}

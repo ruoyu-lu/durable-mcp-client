@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin the form-schema URI resolver to fast-uri 3.1.9, including clean package installations.
+
 - Reject blank CLI tool names and non-object arguments before creating submission records.
 
 - Create new SQLite task databases with owner-only POSIX permissions, including their WAL sidecars.
