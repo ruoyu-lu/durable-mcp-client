@@ -1,6 +1,6 @@
 # Backlog
 
-Updated 2026-09-29. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
+Updated 2026-10-27. Ordered queue for the [roadmap](roadmap.md); GitHub issues hold detailed acceptance criteria. Private run notes are a handoff, not an independent roadmap.
 
 ## Delivered: R1 — Reliable recovery
 
@@ -17,6 +17,9 @@ Updated 2026-09-29. Ordered queue for the [roadmap](roadmap.md); GitHub issues h
 - [x] Local file-manifest server using the published mcp-durable-tasks 0.2.1 lifecycle and TypeScript SDK 2.0.0; real checksums, progress persistence, independent-process recovery, no-resubmission evidence and cancellation.
 
 ## Current: standalone CLI maintenance
+
+1. Complete the production URI resolver security fix (#29) and refresh its verified artifact.
+2. [#30 Upgrade vulnerable SDK/example dependencies](https://github.com/ruoyu-lu/durable-mcp-client/issues/30). The October 27 full audit found SDK, Hono and Zod advisories outside the production CLI package. Verify the real file-manifest workflow and SDK characterization after upgrading; retain the runtime adapter unless evidence supports replacement.
 
 R1–R3 acceptance work is delivered and there is no remaining mandatory alpha implementation gate. Inspect existing work and reproduce reported or inspection-discovered correctness/installability regressions before selecting new features. A new interoperability feature needs a concrete user/server workflow; do not manufacture issues or convenience features to fill a daily run.
 
