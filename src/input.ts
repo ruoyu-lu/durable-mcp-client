@@ -1,3 +1,4 @@
+import uriResolver from 'fast-uri';
 import { Ajv } from 'ajv';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { fullFormats } from 'ajv-formats/dist/formats.js';
@@ -26,7 +27,7 @@ export function validateInputResponse(request: NonNullable<Snapshot['inputReques
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) invalid('Unsupported form schema');
   // Compile synchronously: no remote schema loading, coercion or inserted defaults.
   const draft = (schema as Record<string, unknown>).$schema;
-  const options = { strictTypes: false, strictTuples: false, ownProperties: true, formats: fullFormats };
+  const options = { uriResolver, strictTypes: false, strictTuples: false, ownProperties: true, formats: fullFormats };
   const ajv = draft === 'http://json-schema.org/draft-07/schema#' ? new Ajv(options) : new Ajv2020(options);
   ajv.addKeyword({ keyword: 'enumNames', schemaType: 'array', valid: true });
   try {

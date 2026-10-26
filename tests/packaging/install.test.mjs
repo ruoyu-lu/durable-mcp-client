@@ -38,6 +38,7 @@ test('built tarball installs and runs independently with production dependencies
   const packageRoot = join(install, 'node_modules', 'durable-mcp-client');
   const installed = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(installed.version, manifest.version);
+  assert.equal(installed.dependencies['fast-uri'], '3.1.9');
   assert.deepEqual(installed.bin, { 'durable-mcp-client': 'bin/durable-mcp-client.js' });
   assert.equal(installed.dependencies['@modelcontextprotocol/client'], undefined);
   for (const omitted of ['typescript', '@types/node', '@modelcontextprotocol/client', '@modelcontextprotocol/server', '@modelcontextprotocol/node', 'mcp-durable-tasks', 'zod']) {
