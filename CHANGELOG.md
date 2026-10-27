@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Upgrade the example SDK, Hono and Zod dependencies to patched releases; retain verified Tasks recovery and cancellation behavior.
+
 - Pin the form-schema URI resolver to fast-uri 3.1.9, including clean package installations.
 
 - Reject blank CLI tool names and non-object arguments before creating submission records.

@@ -46,10 +46,10 @@ Examples are illustrative and sometimes omit capability metadata or use inconsis
 | Component | Evidence | Status |
 | --- | --- | --- |
 | Tasks extension | Immutable source and digest; matrix above | Source baseline established |
-| TypeScript SDK | `@modelcontextprotocol/client@2.0.0`, pinned in package-lock.json; fetch-seam tests below | Modern Tasks blocked in the public client API |
+| TypeScript SDK | `@modelcontextprotocol/client@2.4.0`, pinned in package-lock.json; fetch-seam tests below | Modern Tasks blocked in the public client API |
 | FastMCP/tasks/Docket | FastMCP 4.0.3, fastmcp-tasks 4.0.3, pydocket 0.25.2, Python MCP 2.2.0; real background hashing example | JSON HTTP submission, client restart and uncached result retrieval after FastMCP restart verified with Redis kept running; Redis-process durability untested |
 | HTTP wire behavior | Loopback fixture tests and real FastMCP integration through separate CLI processes | JSON HTTP task submission, working state and completed result verified; cancellation acknowledgment and confirmed state verified; background form input verified through choose_label; other input methods pending |
-| Harness | No source audit or plugin probe completed | Deferred to optional R4; not a CLI alpha gate |
+| Harness | Bounded 0.2.0-rc.1 probe completed; see [probe evidence](../tests/probes/harness/README.md) | Deferred to optional R4 pending a concrete delivery contract; not a CLI alpha gate |
 
 Do not interpret these pending rows as successful interoperability.
 
@@ -64,11 +64,11 @@ python3 -c 'import base64, hashlib, pathlib; print(hashlib.sha256(base64.b64deco
 
 Compare the output with `sha256` in `docs/protocol-baseline.json`. This verifies source bytes, not protocol conformance. This source check alone does not validate runtime behavior.
 
-## Published client probe (2026-09-08, Australia/Melbourne)
+## Published client probe (rechecked 2026-10-28, Australia/Melbourne)
 
 Install with `npm ci --ignore-scripts`, run `npm run check`, then `npm test` (Node 22 or newer). The lockfile pins the dependency tree. Tests use the published SDK and its public HTTP transport fetch hook with a controlled responder, not a real HTTP server or FastMCP process.
 
-Observed with Node 24.1.0 and `@modelcontextprotocol/client@2.0.0`:
+Observed with Node 24.1.0 and `@modelcontextprotocol/client@2.4.0`:
 
 | Probe | Observed result |
 | --- | --- |

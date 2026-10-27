@@ -1,6 +1,6 @@
 # Local file manifests with a second Tasks runtime
 
-Generate SHA-256 manifests for explicitly selected local files, leave the CLI, and retrieve the results later. The server reuses `mcp-durable-tasks` 0.2.1 for the task lifecycle and `@modelcontextprotocol/server` / `@modelcontextprotocol/node` 2.0.0 for modern MCP HTTP. These are development/example dependencies; the installed client does not depend on them.
+Generate SHA-256 manifests for explicitly selected local files, leave the CLI, and retrieve the results later. The server reuses `mcp-durable-tasks` 0.2.1 for the task lifecycle and `@modelcontextprotocol/server` 2.4.0 / `@modelcontextprotocol/node` 2.1.2 for modern MCP HTTP. These are development/example dependencies; the installed client does not depend on them.
 
 ## Run
 

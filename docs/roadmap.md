@@ -28,7 +28,7 @@ Artifact gate passed: a fresh environment installs the tarball and reproduces th
 
 ## R3 — Concrete second-server workflow (delivered)
 
-The local file-manifest example uses `mcp-durable-tasks` 0.2.1 and TypeScript server/node SDK 2.0.0. It streams SHA-256 checksums for explicit files, reports progress and honors cooperative cancellation. The client retains advisory `statusMessage` text and resumes observation from independent CLI processes.
+The local file-manifest example uses `mcp-durable-tasks` 0.2.1 and TypeScript server SDK 2.4.0 and node SDK 2.1.2. It streams SHA-256 checksums for explicit files, reports progress and honors cooperative cancellation. The client retains advisory `statusMessage` text and resumes observation from independent CLI processes.
 
 Gate passed: real file digests match independent hashes; an uncached result is retrieved under the original handle; a proxy verifies one submission per job. Working progress survives client reopen and cancellation is confirmed by a later query. The second server uses memory storage and stays running; this adds no server-crash guarantee. Authentication, SSE and legacy negotiation remain demand-driven, not prerequisites. See the [example](../examples/file-manifest/README.md) and [coverage](validation.md).
 
