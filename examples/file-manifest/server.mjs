@@ -67,7 +67,7 @@ const server = createServer((req, res) => {
       return reply(res, null, { error: { code: -32600, message: 'Expected a JSON-RPC request' } });
     }
     if (!body.method.startsWith('tasks/')) return nodeHandler(req, res, body);
-    // SDK 2.0.0 rejects retired tasks/get and tasks/cancel before custom handlers.
+    // SDK 2.4.0 rejects retired tasks/get and tasks/cancel before custom handlers.
     // Keep the upstream example's middleware workaround confined to this server.
     const params = body.params;
     if (req.headers['mcp-method'] !== body.method || req.headers['mcp-name'] !== params?.taskId
